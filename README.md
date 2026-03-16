@@ -196,7 +196,11 @@
 
 ## 安装方式
 
-### 方式一：Marketplace 安装（推荐）
+本技能原生为 Claude Code 设计，同时也可在其他主流 AI 编程工具中使用。
+
+### Claude Code
+
+#### Marketplace 安装（推荐）
 
 两步完成。第一步注册 marketplace，第二步安装插件：
 
@@ -214,9 +218,9 @@ claude plugin install writing-polish@zen-yang-xie-zuo
 claude plugin update writing-polish@zen-yang-xie-zuo
 ```
 
-### 方式二：手动复制
+#### 手动复制
 
-将 `skills/writing-polish/` 文件夹复制到你的 `~/.claude/skills/` 目录：
+将 `skills/writing-polish/` 文件夹复制到 `~/.claude/skills/` 目录：
 
 ```bash
 git clone https://github.com/sinnohzeng/zen-yang-xie-zuo.git
@@ -225,7 +229,7 @@ cp -r zen-yang-xie-zuo/skills/writing-polish ~/.claude/skills/
 
 这种方式不支持自动更新，需要手动拉取新版本后重新复制。
 
-### 方式三：符号链接（本地开发）
+#### 符号链接（本地开发）
 
 适合需要修改和调试技能的开发者：
 
@@ -234,7 +238,108 @@ git clone https://github.com/sinnohzeng/zen-yang-xie-zuo.git
 ln -s $(pwd)/zen-yang-xie-zuo/skills/writing-polish ~/.claude/skills/writing-polish
 ```
 
-这种方式下，对仓库的修改会立即生效，无需重新安装。
+对仓库的修改会立即生效，无需重新安装。
+
+### TRAE（字节跳动）
+
+TRAE 使用 `.trae/rules/` 目录存放项目级规则，格式为 Markdown。将技能核心文件复制为 TRAE 规则：
+
+```bash
+git clone https://github.com/sinnohzeng/zen-yang-xie-zuo.git
+mkdir -p .trae/rules
+cp zen-yang-xie-zuo/skills/writing-polish/SKILL.md .trae/rules/writing-polish.md
+cp zen-yang-xie-zuo/skills/writing-polish/references/*.md .trae/rules/
+```
+
+也可以在 TRAE 设置界面中，打开 Rules 面板手动创建规则文件，将 SKILL.md 的内容粘贴进去。
+
+### Cursor
+
+Cursor 使用 `.cursor/rules/` 目录存放规则，格式为 `.mdc`（带 YAML 头部的 Markdown）。需要手动添加头部信息：
+
+```bash
+git clone https://github.com/sinnohzeng/zen-yang-xie-zuo.git
+mkdir -p .cursor/rules
+```
+
+在 `.cursor/rules/` 中创建 `writing-polish.mdc` 文件，添加如下头部后粘贴 SKILL.md 的内容：
+
+```yaml
+---
+description: 写作润色审稿，触发词：润色、审稿、改稿、帮我写、polish、review writing
+alwaysApply: false
+---
+```
+
+参考文件同理，每个文件加上头部后放入 `.cursor/rules/` 目录即可。
+
+### Windsurf（Codeium）
+
+Windsurf 使用 `.windsurf/rules/` 目录，格式为 Markdown：
+
+```bash
+git clone https://github.com/sinnohzeng/zen-yang-xie-zuo.git
+mkdir -p .windsurf/rules
+cp zen-yang-xie-zuo/skills/writing-polish/SKILL.md .windsurf/rules/writing-polish.md
+cp zen-yang-xie-zuo/skills/writing-polish/references/*.md .windsurf/rules/
+```
+
+注意 Windsurf 对规则文件有总计 12,000 字符的限制，可能需要精简内容或只选用核心文件。
+
+### Cline（VS Code 插件）
+
+Cline 使用 `.clinerules/` 目录，格式为 Markdown：
+
+```bash
+git clone https://github.com/sinnohzeng/zen-yang-xie-zuo.git
+mkdir -p .clinerules
+cp zen-yang-xie-zuo/skills/writing-polish/SKILL.md .clinerules/writing-polish.md
+cp zen-yang-xie-zuo/skills/writing-polish/references/*.md .clinerules/
+```
+
+### GitHub Copilot
+
+Copilot 使用 `.github/copilot-instructions.md` 作为全局指令，或 `.github/instructions/` 目录存放多个指令文件：
+
+```bash
+git clone https://github.com/sinnohzeng/zen-yang-xie-zuo.git
+mkdir -p .github/instructions
+cp zen-yang-xie-zuo/skills/writing-polish/SKILL.md .github/instructions/writing-polish.instructions.md
+```
+
+Copilot 的指令文件支持 YAML 头部指定作用范围，可按需添加：
+
+```yaml
+---
+applyTo:
+  - "**/*.md"
+  - "**/*.txt"
+  - "**/*.docx"
+---
+```
+
+### Augment Code
+
+Augment 使用 `.augment/rules/` 目录或项目根目录的 `.augment-guidelines` 文件：
+
+```bash
+git clone https://github.com/sinnohzeng/zen-yang-xie-zuo.git
+mkdir -p .augment/rules
+cp zen-yang-xie-zuo/skills/writing-polish/SKILL.md .augment/rules/writing-polish.md
+cp zen-yang-xie-zuo/skills/writing-polish/references/*.md .augment/rules/
+```
+
+### 各工具规则系统对照
+
+| 工具 | 规则目录 | 文件格式 | 字符限制 |
+|------|---------|---------|---------|
+| Claude Code | `~/.claude/skills/` 或 Plugin | Markdown | 无硬性限制 |
+| TRAE | `.trae/rules/` | Markdown | 未公开 |
+| Cursor | `.cursor/rules/` | `.mdc`（Markdown + YAML 头部） | 未公开 |
+| Windsurf | `.windsurf/rules/` | Markdown | 12,000 字符 |
+| Cline | `.clinerules/` | Markdown | 未公开 |
+| Copilot | `.github/instructions/` | Markdown + YAML 头部 | 代码审查场景 4,000 字符 |
+| Augment | `.augment/rules/` | Markdown | 约 49,000 字符 |
 
 ### 前置依赖（可选）
 
