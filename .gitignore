@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+._*
+
+# Firecrawl cache (web scraping results)
+.firecrawl/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# DOCX working files (unpack/pack temp)
+unpacked/
+*.tmp
+
+# OS generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
