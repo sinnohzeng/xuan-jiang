@@ -10,7 +10,7 @@ Thank you for your interest in Xuan-Jiang! This guide explains how to contribute
 
 - **报告 Bug** — 使用 [Issue 模板](https://github.com/sinnohzeng/xuan-jiang/issues/new/choose) 提交
 - **功能建议** — 同样通过 Issue 提交，描述使用场景
-- **贡献 Skill** — 为 workflow-toolkit 或 writing-polish 添加新技能
+- **贡献 Skill** — 为 writing-polish 添加新技能或方法论补强
 - **改进文档** — 修正错误、补充说明
 
 ---

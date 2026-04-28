@@ -45,6 +45,7 @@ Desktop.ini
 test/
 firebase-debug.log
 
-# 构建产物（不排除 plugins/*/dist/）
+# 构建产物
 /dist/
 *.zip
+plugins/*/dist/

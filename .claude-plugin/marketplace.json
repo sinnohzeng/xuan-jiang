@@ -4,24 +4,16 @@
     "name": "sinnohzeng"
   },
   "metadata": {
-    "description": "Personal Claude Code skill collection: writing polish + developer workflow toolkit"
+    "description": "Professional Chinese writing assistance based on 《怎样写作》(任仲然) methodology with strict anti-AI-taste enforcement."
   },
   "plugins": [
     {
       "name": "writing-polish",
       "source": "./plugins/writing-polish/",
-      "description": "Professional writing assistance and revision. 基于《怎样写作》专业方法论的写作辅助与审稿润色技能。",
-      "version": "3.0.0",
-      "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese"],
+      "description": "Professional writing assistance and revision. 基于《怎样写作》专业方法论的写作辅助与审稿润色技能，含 110 条 AI 味硬约束。",
+      "version": "4.0.0",
+      "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste"],
       "category": "writing"
-    },
-    {
-      "name": "workflow-toolkit",
-      "source": "./plugins/workflow-toolkit/",
-      "description": "Developer workflow skills: commit, doc sync, plan review, CI tracking, and more.",
-      "version": "2.0.0",
-      "keywords": ["workflow", "commit", "ci", "documentation", "review", "提交", "同步", "复盘", "收尾", "pinyin"],
-      "category": "developer-tools"
     }
   ]
 }

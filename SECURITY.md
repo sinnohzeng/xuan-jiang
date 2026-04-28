@@ -2,9 +2,9 @@
 
 ## 范围 Scope
 
-本策略仅覆盖轩匠仓库中的插件代码（writing-polish、workflow-toolkit）。Claude Code 本身的安全问题请向 [Anthropic](https://docs.anthropic.com/en/docs/claude-code/security) 报告。
+本策略仅覆盖轩匠仓库中的 writing-polish 插件代码。Claude Code 本身的安全问题请向 [Anthropic](https://docs.anthropic.com/en/docs/claude-code/security) 报告。
 
-This policy covers only the plugin code in this repository. For Claude Code itself, report to [Anthropic](https://docs.anthropic.com/en/docs/claude-code/security).
+This policy covers only the writing-polish plugin code in this repository. For Claude Code itself, report to [Anthropic](https://docs.anthropic.com/en/docs/claude-code/security).
 
 ## 报告漏洞 Reporting a Vulnerability
 
