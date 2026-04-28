@@ -23,7 +23,7 @@
 |------|----------|
 | 读取/分析内容 | `pandoc`，转 Markdown 后分析 |
 | 浏览文档结构（大文档定位） | `python-docx`，遍历段落/表格 |
-| 创建新文档 | `python-docx`；公文格式见 `references/gongwen-format.md` |
+| 创建新文档 | `python-docx`；公文格式见主 SKILL.md §7 资源索引中的 gongwen-format.md |
 | 编辑现有文档（Track Changes）| `docx-editor` ★推荐 |
 | 编辑页眉页脚/嵌入图片等 | 手动 OOXML 操作（见第七节）|
 
@@ -336,5 +336,5 @@ Anthropic 官方提供两个版本的 DOCX skill：
 当需要从零创建 DOCX（而非编辑现有文档）时：
 
 - 使用 `python-docx` 库创建（`pip install python-docx`）
-- 如果文体为**公文**，遵循 `references/gongwen-format.md` 中的 GB/T 9704 排版规范
+- 如果文体为**公文**，遵循 GB/T 9704 排版规范（主 SKILL.md §7 资源索引中的 gongwen-format.md）
 - 如果文体为其他类型，使用合理的默认排版格式

@@ -2,7 +2,7 @@
 
 基于《怎样写作》（任仲然）第二至四讲，专注于文稿的逻辑审查和结构审查两个操作维度。
 
-五种思维方式和立意构思提纲方法论见 `references/writing-methodology.md`。
+五种思维方式和立意构思提纲方法论：见主 SKILL.md §7 资源索引中的 writing-methodology.md。
 
 ## 目录
 

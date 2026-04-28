@@ -1,0 +1,116 @@
+{
+  "$schema": "https://agentskills.io/schemas/evals.v1.json",
+  "skill": "writing-polish",
+  "version": "4.0.0",
+  "purpose": "Regression tests for writing-polish v4.0. Subjective writing output - pass/fail is heuristic, not strict.",
+  "tests": [
+    {
+      "id": "test-01-light-polish-gongwen-jargon",
+      "title": "公文黑话 + 翻译腔润色",
+      "input": {
+        "user_message": "请润色这段公文：在新时代背景下，我们要充分赋能基层治理，深度融合各方资源，打造全方位的治理新格局。"
+      },
+      "expected_behavior": [
+        "不得保留'在新时代背景下'（红线 §1.1.18 翻译腔）",
+        "不得保留'赋能/深度融合/打造'（红线 §1.1.1, §1.1.3, §1.1.7 公文黑话）",
+        "不得保留'全方位'（红线 §1.1.10）",
+        "改稿应给出具体动作而非抽象大词",
+        "改稿后必须通过 scripts/scan-ai-taste.sh"
+      ],
+      "anti_patterns": [
+        "不能用'重塑'替换'打造'（同样红线）",
+        "不能用'切实推动'替换'充分赋能'（红线 §1.1.9）",
+        "不能用破折号——重组",
+        "不能用'不是简单的 X 而是 Y'句式"
+      ],
+      "pass_criteria": "scripts/scan-ai-taste.sh exit code = 0"
+    },
+    {
+      "id": "test-02-deep-revision-zhishu",
+      "title": "述职报告深度修改",
+      "input": {
+        "user_message": "审一审这段述职：本人在过去的一年中，深入贯彻落实上级精神，积极开展各项工作，取得了显著成效。我始终把工作放在首位，不断提升能力素质，为单位发展贡献力量。",
+        "context": "用户要求深度修改"
+      },
+      "expected_behavior": [
+        "识别为述职报告文体，加载 references/genre-guide.md 第四节",
+        "按'三取胜'重组结构（以实/以数/以事和绩）",
+        "指出原文'显著成效''贡献力量'是空话，要求补充具体事项",
+        "建议加入工作量化数据（深入基层多少次/解决多少问题）",
+        "建议加入查找不足段落（坦诚不回避）"
+      ],
+      "anti_patterns": [
+        "不能保留'深入贯彻落实''取得显著成效''贡献力量'等空话",
+        "不能仅做语言润色而不重组结构"
+      ],
+      "pass_criteria": "审查报告含'三取胜'结构指引 + AI 味检测通过"
+    },
+    {
+      "id": "test-03-writing-assistance-with-anchor",
+      "title": "写作辅助 + 范文锚点摹仿",
+      "input": {
+        "user_message": "帮我搭一个论坛演讲稿提纲，主题是数字治理转型，准备讲 5-7 分钟"
+      },
+      "expected_behavior": [
+        "建议读 assets/anchor-essays/03-eco-province-speech.md 摹仿生态兴省演讲稿结构",
+        "提纲含 5 点感想结构（讲会议/讲关系/讲故事/讲目标/讲自己）",
+        "总时长控制在 5-7 分钟",
+        "每点标题用'我讲...''我想讲...'第一人称"
+      ],
+      "anti_patterns": [
+        "不能用'理论篇/实践篇/展望篇'AI 三段对仗",
+        "不能含'值得注意的是''综上所述'套话",
+        "不堆砌'数字化转型''全方位赋能'等公文黑话"
+      ],
+      "pass_criteria": "提纲结构对标范文 03，无红线词汇"
+    },
+    {
+      "id": "test-04-em-dash-elimination",
+      "title": "破折号硬约束（用户硬点红线）",
+      "input": {
+        "user_message": "这句话怎么改：《史记》——作为中国历史叙事传统中最具开创性的著作之一——深刻塑造了后世的史学书写范式。"
+      },
+      "expected_behavior": [
+        "命中红线 §1.4.101-102 破折号",
+        "改写后 0 个破折号",
+        "建议参考 references/ai-taste-examples.md §4 破折号翻译腔"
+      ],
+      "anti_patterns": [
+        "不能保留任何形式破折号（— 或 ——）",
+        "不能用括号替换破折号制造同样效果"
+      ],
+      "pass_criteria": "改写后 grep -c '——\\|—' = 0"
+    },
+    {
+      "id": "test-05-anti-customer-service-tone",
+      "title": "客服腔'接住'硬约束",
+      "input": {
+        "user_message": "改改这段：我能理解你现在的焦虑。先别急，让我帮你接住这份不安。首先，要看到你已经迈出了第一步——这本身就值得肯定。其次，每个人的节奏不同。"
+      },
+      "expected_behavior": [
+        "命中红线 §1.1.48-50 接住/共情/看见你",
+        "命中红线 §1.1.26 首先/其次/最后",
+        "命中红线 §1.4.101 破折号",
+        "改写时不再用'接住''共情'等客服词",
+        "建议参考 references/ai-taste-examples.md §5 客服腔反例"
+      ],
+      "anti_patterns": [
+        "不能用'同理'/'理解'替换'接住'保持一样套路",
+        "不能保留'你并不孤单''记住XX'等空洞肯定",
+        "不能保留'首先...其次...最后'三段式"
+      ],
+      "pass_criteria": "改写后 scan-ai-taste.sh PASS + 客服腔词全部清零"
+    }
+  ],
+  "validation_method": {
+    "objective_check": {
+      "tool": "scripts/scan-ai-taste.sh",
+      "expected_exit_code": 0,
+      "description": "Run on revised output. Hard rules MUST = 0."
+    },
+    "subjective_check": {
+      "method": "Spawn 2 subagents (with-skill vs baseline), compare output for AI-flavor density.",
+      "metric": "Manual review (writing quality is subjective)"
+    }
+  }
+}

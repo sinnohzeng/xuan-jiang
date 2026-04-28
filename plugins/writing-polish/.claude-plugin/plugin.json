@@ -1,12 +1,12 @@
 {
   "name": "writing-polish",
-  "version": "3.1.0",
-  "description": "Professional writing assistance and revision skill based on 《怎样写作》(任仲然). 基于专业写作方法论的写作辅助与审稿润色技能。",
+  "version": "4.0.0",
+  "description": "Professional Chinese writing skill based on 《怎样写作》(任仲然) methodology with 110-rule anti-AI-taste enforcement. 基于专业方法论的写作辅助与审稿润色，含 110 条 AI 味硬约束 + 8 范文锚点 + 三层防御。",
   "author": {
     "name": "sinnohzeng"
   },
   "repository": "https://github.com/sinnohzeng/xuan-jiang",
   "license": "MIT",
-  "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese"],
+  "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "renzhongran"],
   "skills": "./skills/"
 }
