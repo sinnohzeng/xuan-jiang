@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scan-ai-taste.sh —— writing-polish v4.2 交付前 AI 味自检
+# scan-ai-taste.sh —— writing-polish v4.3 交付前 AI 味自检
 #
 # L3 Gate：在交付任何修改稿前必跑。任何硬约束未达标，禁止交付。
 #
@@ -21,13 +21,32 @@ set -uo pipefail
 
 FILE="${1:-}"
 MODE="standard"
+LLM_JUDGE=0
 shift 2>/dev/null || true
 for arg in "$@"; do
     case "$arg" in
         --suggest-fix) MODE="suggest" ;;
         --json) MODE="json" ;;
+        --llm-judge) LLM_JUDGE=1 ;;
     esac
 done
+
+# v5.0 范式预告：--llm-judge flag 在 v4.3 仅打印 RFC 提示，不实际调用 LLM
+if [ "$LLM_JUDGE" -eq 1 ]; then
+    echo "================================================"
+    echo "  --llm-judge flag detected (v4.3 stub)"
+    echo "================================================"
+    echo
+    echo "  v4.3 仍以硬正则匹配 + 上下文白名单为基础。"
+    echo "  LLM-as-judge 混合架构（D3 隐喻 / D4 大厂vs党政 / D5 散文 AI 体）"
+    echo "  将在 v5.0 落地。"
+    echo
+    echo "  详见 RFC：docs/rfc/v5.0-llm-judge.md"
+    echo
+    echo "  本次扫描仍走 v4.3 硬规则路径。"
+    echo "================================================"
+    echo
+fi
 
 if [ -z "$FILE" ]; then
     echo "用法: bash scan-ai-taste.sh <file.md> [--suggest-fix|--json]"
@@ -170,7 +189,7 @@ suggest_for() {
 }
 
 echo "================================================"
-echo "       AI 味红线扫描 v4.2"
+echo "       AI 味红线扫描 v4.3"
 echo "       文件：$FILE"
 [ "$MODE" = "suggest" ] && echo "       模式：建议改写"
 echo "================================================"
