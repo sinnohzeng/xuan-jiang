@@ -1,8 +1,8 @@
 {
   "$schema": "https://agentskills.io/schemas/evals.v1.json",
   "skill": "writing-polish",
-  "version": "4.2.0",
-  "purpose": "Regression tests for writing-polish v4.2. Subjective writing output - pass/fail is heuristic, not strict. v4.2 adds reverse cases and edge cases.",
+  "version": "4.3.0",
+  "purpose": "Regression tests for writing-polish v4.3. Dual-track: tests array (LLM behavior) + regression_fixtures array (scan script regression). v4.3 adds context-aware whitelists, dynamic density thresholds, consulting-report constraints, and 6 regression fixtures.",
   "tests": [
     {
       "id": "test-01-light-polish-gongwen-jargon",

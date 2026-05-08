@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# test-runner.sh —— writing-polish v4.2 evals 回归测试脚本
+# test-runner.sh —— writing-polish v4.3 evals 回归测试脚本
 #
 # 用法：
 #   bash evals/test-runner.sh                # 跑全部 20 条 test
@@ -55,7 +55,7 @@ FAIL=0
 SKIP=0
 
 echo "================================================"
-echo "  writing-polish v4.2 evals 回归测试"
+echo "  writing-polish v4.3 evals 回归测试"
 echo "  模式: $MODE"
 [ -n "$TAG_FILTER" ] && echo "  Tag 筛选: $TAG_FILTER"
 echo "================================================"

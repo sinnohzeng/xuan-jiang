@@ -1,12 +1,12 @@
 {
   "name": "writing-polish",
-  "version": "4.2.0",
-  "description": "Professional Chinese writing skill based on 《怎样写作》(任仲然) methodology with 230+ anti-AI-taste rules. 基于专业方法论的中文写作辅助与审稿润色，配套 230 余条 AI 味规则、scripts/scan-ai-taste.sh 自动校验、7 大文体专属审稿标准。",
+  "version": "4.3.0",
+  "description": "Professional Chinese writing skill based on 《怎样写作》(任仲然) methodology with 230+ anti-AI-taste rules. v4.3 adds context-aware whitelists (firewall in IT context, 对标 in 党政咨询 context auto-exempt via ±2 line window), dynamic density thresholds by sentence count, 5 consulting-report-specific constraints (§1.8), 11 real-world anchors (incl. cicpa consulting template), and evals dual-track (LLM behavior + 6 scan regression fixtures). 基于专业方法论的中文写作辅助与审稿润色，v4.3 新增上下文感知白名单 + 千句密度动态阈值 + 咨询报告专属约束 + 11 篇真实锚本 + 双轨 evals 体系。",
   "author": {
     "name": "sinnohzeng"
   },
   "repository": "https://github.com/sinnohzeng/xuan-jiang",
   "license": "MIT",
-  "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "renzhongran"],
+  "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "renzhongran", "context-aware", "consulting-report"],
   "skills": "./skills/"
 }
