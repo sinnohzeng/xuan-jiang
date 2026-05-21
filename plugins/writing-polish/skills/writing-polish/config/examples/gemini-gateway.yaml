@@ -1,0 +1,32 @@
+# xuan-jiang BYOM 示例：切 Cloudflare AI Gateway 13-key Gemini 池化
+#
+# 用法：复制此文件到 ~/.config/xuan-jiang/config.yaml
+# 或项目根 .xuan-jiang.yaml
+#
+# 凭据：env GEMINI_GATEWAY_AUTH + GEMINI_GATEWAY_BASEURL 必须已配置
+# 适用：Layer 3 多 reviewer 并行（13-key 池天然适合 batch）
+
+judge:
+  provider: openai-compatible
+  base_url_env: GEMINI_GATEWAY_BASEURL  # 从 env 读 URL（含 Cloudflare account ID）
+  model: gemini-3-pro-preview
+  api_key_env: GEMINI_GATEWAY_AUTH
+  temperature: 0.0
+  max_tokens: 4096
+  vote_rounds: 3
+
+reviewer:
+  provider: openai-compatible
+  base_url_env: GEMINI_GATEWAY_BASEURL
+  model: gemini-3-pro-preview
+  api_key_env: GEMINI_GATEWAY_AUTH
+  temperature: 0.2
+  max_tokens: 8192
+
+rewriter:
+  provider: openai-compatible
+  base_url_env: GEMINI_GATEWAY_BASEURL
+  model: gemini-3-pro-preview
+  api_key_env: GEMINI_GATEWAY_AUTH
+  temperature: 0.3
+  max_tokens: 16384

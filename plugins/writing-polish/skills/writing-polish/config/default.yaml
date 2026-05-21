@@ -1,0 +1,60 @@
+# xuan-jiang v5.0 默认配置
+#
+# 用户级覆盖：~/.config/xuan-jiang/config.yaml
+# 项目级覆盖：<project-root>/.xuan-jiang.yaml（最高优先级）
+# Env 兜底：XUAN_JIANG_<ROLE>_MODEL / _BASE_URL / _API_KEY_ENV
+#
+# 优先级：env > project yaml > user yaml > default.yaml
+
+# Layer 2 LLM Judge（pointwise scoring）
+judge:
+  provider: anthropic
+  model: claude-sonnet-4-6
+  api_key_env: ANTHROPIC_API_KEY
+  temperature: 0.0
+  max_tokens: 4096
+  # 防 position bias 的 pass^k 多数投票
+  vote_rounds: 3
+
+# Layer 3 子 reviewer（multi-agent review，clean-context）
+reviewer:
+  provider: anthropic
+  model: claude-sonnet-4-6
+  api_key_env: ANTHROPIC_API_KEY
+  temperature: 0.2
+  max_tokens: 8192
+
+# Self-Refine rewriter
+rewriter:
+  provider: anthropic
+  model: claude-sonnet-4-6
+  api_key_env: ANTHROPIC_API_KEY
+  temperature: 0.3
+  max_tokens: 16384
+
+# Layer 触发阈值
+layer_thresholds:
+  # Layer 2 触发判断（轻度润色 / 深度修改都触发，写作辅助不触发）
+  layer_2_min_words: 50
+
+  # Layer 3 多智能体触发（满足任一即触发）
+  layer_3_trigger_word_count: 3000
+  layer_3_trigger_genres:
+    - research-report
+    - public-document
+    - position-report
+
+  # Self-Refine 闭环
+  self_refine_max_rounds: 3
+  self_refine_min_score_delta: 0.5  # 每轮 judge 分至少提升 0.5 才继续
+
+# Multi-Agent Review 收敛判停
+multi_agent_convergence:
+  max_rounds: 5
+  acceptance_rate_threshold: 0.20  # 连续 2 轮 < 20% 采纳率即收敛
+  severe_zero_required: true
+
+# Calibration gate
+calibration:
+  cohen_kappa_threshold: 0.80
+  rounds: 3
