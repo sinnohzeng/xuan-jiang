@@ -69,7 +69,9 @@ def load_config(role: Role) -> ModelConfig:
         role_cfg["model"] = os.environ[f"{env_prefix}MODEL"]
     if os.getenv(f"{env_prefix}BASE_URL"):
         role_cfg["base_url"] = os.environ[f"{env_prefix}BASE_URL"]
-        role_cfg.setdefault("provider", "openai-compatible")
+        # 设置 BASE_URL 强烈暗示 BYOM 走 OpenAI-compatible（除非显式 PROVIDER 覆盖在后）；
+        # 用 = 而非 setdefault 才能覆盖 default.yaml 的 provider=anthropic
+        role_cfg["provider"] = "openai-compatible"
     if os.getenv(f"{env_prefix}API_KEY_ENV"):
         role_cfg["api_key_env"] = os.environ[f"{env_prefix}API_KEY_ENV"]
     if os.getenv(f"{env_prefix}PROVIDER"):
