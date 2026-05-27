@@ -18,6 +18,19 @@
 
 第三种是写出来一眼能看出“机器味”。破折号到处插、括号里塞补充信息、套话连接词反复出现、客服腔情感套话满天飞、伪极客腔战斗化叙事、互联网大厂黑话堆砌。读者看一眼就知道这是 AI 写的。
 
+**v5.1 当前状态**（2026-05-27）：模型解耦三层 hybrid 架构 + 多智能体审校实装。
+
+- **L1 硬 Gate**：`scripts/scan-hard-gate.sh`（CI 强制 30 条最小集）+ `scripts/scan-ai-taste.sh`（交付前完整版 230+ 条扫描）
+- **L2 LLM Judge**：主对话 inline 执行（零外部 API），按 5 维 rubric × 8 文体切片打分（D1 标点 / D2 套话 / D3 戏剧化 / D4 党政 vs 大厂 / D5 模板感）
+- **L3 多智能体审校**：主对话即 orchestrator，单消息内并行 spawn 1 路 Opus 4.7 R2 fresh-eye + 3-5 路 Sonnet 4.6 R1 多视角评审（clean-context subagent），收 finding 后按 P0-P5 排序 + 决策三问 + Edit 串行倒序落地。对齐 Anthropic Multi-Agent System 2025-06 + Cognition Devin clean-context 2026-04 范式
+- **v5.1 vs v5.0 关键演进**：从 5 个带 `{{}}` 占位符的模板砍成单一 `prompts/multi-agent/orchestration-guide.md` 判断指南；扩 D5/D4 few-shot 8 例直接落地 v5.0 calibration disagreement 反例；SKILL.md 344→90 行符合 Anthropic Progressive Disclosure
+
+完整设计文档见 [docs/rfc/v5.0-llm-judge.md](docs/rfc/v5.0-llm-judge.md)（含 v5.1 演进补遗）和 [plugins/writing-polish/skills/writing-polish/prompts/multi-agent/orchestration-guide.md](plugins/writing-polish/skills/writing-polish/prompts/multi-agent/orchestration-guide.md)。完整 worked example 见 [layer3-walkthrough.md](plugins/writing-polish/skills/writing-polish/references/layer3-walkthrough.md)。
+
+---
+
+## 基础能力（v4.3 沉淀，v5.x 保留不动）
+
 writing-polish v4.3 配套了三组方法对应这三种情况。
 
 一是把任仲然全书 8 万字的方法论结构化成 7 大文体的专属审稿标准。AI 由此知道公文要看立意、调研要看真实深高新活、述职要看以实以数以事和绩取胜。
@@ -31,7 +44,7 @@ writing-polish v4.3 配套了三组方法对应这三种情况。
 - **§1.8 咨询报告专属约束**：第三方咨询机构对甲方交付的 5 条身份铁律（不锚甲方规划 / 结论先行 / 不背书厂商 / 「其一/其二」分级 / 多方利益静默）
 - **11 篇真实锚本**：含 cicpa 第三方咨询交付范本 + 政府工作报告对标用法 + 国家数据局 / 网信办 / 发改委公开报告
 - **evals 双轨化**：6 条 fixtures 入库（含 2 条反向哨兵防漏检），test-runner.sh 自动跑 scan 回归
-- **v5.0 范式预告**：硬正则匹配的根本盲点（同形异义 / 新词演化 / 整体散文 AI 体）将在 v5.0 引入 LLM-as-judge 混合架构。详见 [docs/rfc/v5.0-llm-judge.md](docs/rfc/v5.0-llm-judge.md)
+- ~~v5.0 范式预告~~：v5.0 stable（2026-05-27 上午）已 ship，v5.1 同日晚间补齐多智能体实装 + 8 个 D5/D4 few-shot 反例 + SKILL.md 瘦身。详见本文件顶部 v5.1 现状段 + [docs/rfc/v5.0-llm-judge.md](docs/rfc/v5.0-llm-judge.md)
 
 ---
 

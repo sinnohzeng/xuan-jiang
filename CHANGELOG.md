@@ -2,6 +2,89 @@
 
 All notable changes to xuan-jiang `writing-polish` skill are documented here. Format follows [Keep a Changelog 1.1](https://keepachangelog.com/en/1.1.0/), versioning follows [Semver 2.0](https://semver.org/).
 
+## [5.1.0] — 2026-05-27（晚间，v5.0.0 当日大刀阔斧重构）
+
+### TL;DR
+
+v5.1 大刀阔斧重构 Layer 3 多智能体审校：从 5 个带 `{{}}` 占位符的模板（违背"主智能体判断决策"原则）砍成单一 `orchestration-guide.md` 判断指南（10 段，主对话自主决定派几个 reviewer + 哪几维 + 模型路由）。同时扩 D5/D4 few-shot 8 例（v5.0 calibration disagreement 反例直接落地）+ SKILL.md 344→90 行（Anthropic Progressive Disclosure）。**遵循 Anthropic Multi-Agent System 2025-06 "teach orchestrator how to delegate" + Cognition Devin 2026-04 clean-context 范式。无 release acceptance gate，灰度上线。**
+
+### Added
+
+- **`prompts/multi-agent/orchestration-guide.md`** —— 196 行 10 段单一判断指南，替代 v5.0 的 5 个 placeholder 模板。教主对话怎么思考：何时启 L3 / 派几个 reviewer / 视角组合 / Agent 工具具体语法 / Pre-mod 触发 / R2 fresh-eye 触发 / 收敛判停 / 模型路由 / 错误恢复 fallback / Context Budget 自检
+- **模型路由实装**（v5.1 用户明确要求）：1 主 Opus 4.7 orchestrator + 1 路 Opus 4.7 R2/Pre-mod + 3-5 路 Sonnet 4.6 R1。**Anthropic Multi-Agent System 2025-06 "Opus lead + Sonnet subagents" 范式落地**。Opus 4.7 + Sonnet 4.6 均默认 1M context（2026-05-27 firecrawl 实测 Anthropic docs 锚定）
+- **`references/layer3-walkthrough.md`** —— 282 行完整 worked example，350 字虚构 G8 咨询报告从 L1→L2→L3 全流程跑通：自主决策 / spawn 3 Agent / finding JSON / P0-P5 排序 / 决策三问 / Edit 串行倒序 / 收敛判停 / jsonl append / 交付报告
+- **`references/constitution.md` §5 Example G-N** —— 8 个新 few-shot example 直接来自 v5.0-rc1 calibration disagreement 真实反例：G (D5 充分+大幅+不再仅仅是) / H (D5 不仅否定平行) / I (D5 段首首先过渡套话) / J (D5 经济学抽象化+充分) / K (D5 深入演变叙述) / L (D4 复盘 G8 违规) / M (D4 复盘跨文体对照) / N (D1 半角括号紧跟英文)
+- **`references/constitution.md` §6.1 G3/G8 D5 模糊副词专属雷达** —— 4 类信号清单：模糊副词堆砌 / 否定平行 / 段首过渡套话 / 经济学抽象化
+- **`references/constitution.md` §6.2 D4 同词跨文体条件判决表** —— 6 个大厂内训词在 G1/G2/G7/G3/G8 不同文体下判决矩阵
+- **`references/constitution.md` §2.8 §1.8.6 大厂内训词侵入红线**（v5.1 新增）—— "复盘 / 拉通 / 对齐颗粒度 / 跑通 / 收口" 在 G8 咨询报告语境出现 → D4 ≥ 2
+- **`references/constitution.md` §1.2 D2 套话清单加"复盘"** —— 同词跨文体条件判决（G2 大厂内训合法 / G8 咨询违规）
+- **`prompts/llm-judge-research-report.md`** 同步加 §1.8.6 + D5 模糊副词雷达 + D4 同词跨文体表 + Example G/H/L/M 4 个新 few-shot
+- **`evals/layer3-convergence.jsonl`** —— L3 收敛跟踪 schema 5 核心字段（ts / doc_id / genre / adoption_rate / convergence_rounds / fallback_used）+ 可选扩展字段（reviewer_views / findings_total / kappa_d2_after / kappa_d5_after / wallclock_minutes）
+- **`evals/README.md`** L3 段 —— v5.1 calibration 策略走 dogfood（不调 BYOM API）+ Example G-N 来源 segment 对照表 + Layer 3 walkthrough 指引
+- **SKILL.md §1 3 mode 路径** —— 协助写作 / 轻润色 / 中度修改 / 深度审稿 4 档对应 L1 only / L1+L2 / L1+L2+Self-Refine / L1+L2+L3 启用矩阵
+
+### Changed (Breaking)
+
+- **`prompts/multi-agent/` 5 个 placeholder 模板全部删除**（git rm）：`r1.md` `r2.md` `pre-mod.md` `orchestrator.md` `_task-spec-skeleton.md`。改为单一 `orchestration-guide.md`。**无兼容动作**——v5.0.0 用户必须按 orchestration-guide.md 重写自己的 L3 调用流程
+- **SKILL.md 344 → 90 行**（Anthropic Progressive Disclosure 铁律）：外迁 DOCX 决策树 → docx-editing-guide.md / 写作 5 步法 → writing-methodology.md / 审稿 3 步法 → revision-checklist.md / L1 三小节 → anti-ai-taste-anchors.md / L2 执行步骤 → constitution.md / L3 步骤 → orchestration-guide.md / 修改哲学 → revision-checklist.md。SKILL.md 只保留路由与决策树
+- **L3 模型路由从 hardcode 文本升级为引用 config/default.yaml** —— 未来换 Haiku / Gemini / DeepSeek 走 BYOM 改 config 即可，本指南不动
+
+### Inherited from v5.0.0
+
+- 三层 hybrid 架构（L1 硬 Gate / L2 LLM Judge / L3 多智能体）核心不变
+- 模型解耦原则（主对话即 orchestrator，零外部 API 调用）不变
+- 14 个 references/ 文件保留（ai-taste-examples / anti-ai-taste-anchors / failure-cases 等无重叠合并需求）
+- v4 `scripts/scan-ai-taste.sh` + v5 `scripts/scan-hard-gate.sh` 共存（前者交付前完整版扫描，后者 CI 强制 30 条最小集）
+- `scripts/llm-judge-runner.py` / `model_adapter.py` / `self-refine-loop.py` dev-only 标记保留
+- `assets/anchor-essays/` (8 篇) + `assets/real-world-anchors/` (11 篇) 19 个真实样本全保留
+
+### v5.1 Calibration 策略
+
+**不跑 calibration-runner.sh 的批量 BYOM 复测**——理由：（1）违反全局铁律"永远不通过 Anthropic API 调用 Claude（太贵）"；（2）v5 生产路径已是主对话即 judge（不依赖外部 LLM API）；（3）灰度上线策略明确"不卡 κ 阈值，dogfood 期主对话实战观察"。
+
+**实际复测路径**：v5.1 alpha 灰度期，用户写真实党政公文 / 咨询报告时，主对话按新 prompt 执行 L2 评分，遇到 v5.0-rc1 calibration disagreement 中标注过的 segment（cicpa-349bf83-before-0004 "充分认识" / cicpa-6d25ff5-before-0052 "复盘"），主对话应判出 D5=2 或 D4=2。如仍判 0 → 进 v5.1.x patch backlog。
+
+### 架构 self-check（Anthropic 6 范式 + Context Engineering 4 技巧 + Cognition 单线程）
+
+- ✅ Augmented LLM（L2 主对话 inline judge）
+- ✅ Chaining（L1→L2→L3 三层链）
+- ✅ Routing（文体 G1-G8 + 三层启用条件）
+- ✅ Parallelization（L3 多 reviewer subagent 单 message 并行 spawn）
+- ✅ Orchestrator-Workers（主对话 Opus + Sonnet R1 + Opus R2）
+- ✅ Evaluator-Optimizer（L3 收敛判停 < 20% 采纳率）
+- ✅ Compaction（200K token 自检主动 compact）
+- ✅ Note-Taking（layer3-convergence.jsonl）
+- ✅ Sub-Agent（L3 clean-context，仅返回 JSON）
+- ✅ Just-in-Time（references/ 按需读）
+- ✅ Cognition 单线程 writer（主对话单线程 Edit，subagent 不并发写）
+
+6 范式全覆盖，4 技巧全覆盖。无过度工程化（不加 commands/ slash / MODE_REGISTRY / ARCHITECTURE.md，留 v5.2 评估）。
+
+### v5.1 实战观察清单（dogfood 期记录到 v5.1.x patch backlog，非 release gate）
+
+- 多智能体派遣过程主对话是否真"自主决定"（无 placeholder 填空感）
+- 至少 3 路 Sonnet R1 真并行（单 message multi tool call）
+- 至少 1 路 Opus R2 或 pre-mod 真派出
+- finding 采纳率（观察值）
+- 收敛轮数（观察值）
+- 整体耗时（观察值）
+- `evals/layer3-convergence.jsonl` 首条记录写入
+
+### Verified（2026-05-27 firecrawl 实测）
+
+- Claude Opus 4.7 context window = **1M tokens** ✅，max output 128k
+- Claude Sonnet 4.6 context window = **1M tokens** ✅，max output 64k
+- Claude Haiku 4.5 context window = 200k tokens
+- source: https://docs.claude.com/en/docs/about-claude/models/overview
+
+### Migration
+
+- 升级到 v5.1.0：**无需**改任何 env vars / yaml config
+- 之前依赖 placeholder 模板的 `prompts/multi-agent/{r1,r2,pre-mod,orchestrator,_task-spec-skeleton}.md` 用户 → 改读 `prompts/multi-agent/orchestration-guide.md`，按其 10 段指南自主组装 Agent 工具调用
+- 旧 placeholder 模板已 `git rm`，git 历史可追溯
+
+---
+
 ## [5.0.0] — 2026-05-27
 
 ### TL;DR

@@ -10,9 +10,9 @@
     {
       "name": "writing-polish",
       "source": "./plugins/writing-polish/",
-      "description": "Professional writing assistance and revision. v5.0 model-decoupled three-layer hybrid: L1 hard-gate scan + L2 LLM Judge by main agent + L3 multi-agent review via clean-context subagents. Zero external API. 基于《怎样写作》方法论的中文写作辅助与审稿润色，v5.0 模型解耦三层 hybrid：L1 硬 Gate 脚本 + L2 主对话 LLM Judge + L3 多智能体审校（clean-context subagent）。零外部 API、零 BYOM 环境变量。",
-      "version": "5.0.0",
-      "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "context-aware", "consulting-report", "llm-as-judge", "multi-agent-review", "model-decoupled"],
+      "description": "Professional writing assistance and revision. v5.1 大刀阔斧重构 L3 多智能体审校：单一 orchestration-guide.md 教主对话自主判断（1 路 Opus R2 + 3-5 路 Sonnet R1），对齐 Anthropic Multi-Agent System 2025-06 范式 + Cognition clean-context 2026-04 范式。三层 hybrid 不变：L1 硬 Gate scan + L2 主对话 inline LLM Judge + L3 multi-agent。SKILL.md 344→90 行（Anthropic Progressive Disclosure）。零外部 API。基于《怎样写作》方法论的中文写作辅助与审稿润色。",
+      "version": "5.1.0",
+      "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "context-aware", "consulting-report", "llm-as-judge", "multi-agent-review", "model-decoupled", "orchestrator-workers", "clean-context-subagent"],
       "category": "writing"
     }
   ]
