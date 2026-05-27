@@ -1,0 +1,42 @@
+{
+  "overall_weighted_kappa": 0.307,
+  "per_dim": {
+    "D1": {
+      "kappa": 0.0,
+      "accuracy": 0.93,
+      "n_scored": 43,
+      "n_excluded_unknown": 17,
+      "agreement_pct": 93.0
+    },
+    "D2": {
+      "kappa": 0.0,
+      "accuracy": 0.975,
+      "n_scored": 40,
+      "n_excluded_unknown": 20,
+      "agreement_pct": 97.5
+    },
+    "D3": {
+      "kappa": 1.0,
+      "accuracy": 1.0,
+      "n_scored": 40,
+      "n_excluded_unknown": 20,
+      "agreement_pct": 100.0
+    },
+    "D4": {
+      "kappa": 0.655,
+      "accuracy": 0.976,
+      "n_scored": 41,
+      "n_excluded_unknown": 19,
+      "agreement_pct": 97.6
+    },
+    "D5": {
+      "kappa": 0.0,
+      "accuracy": 0.741,
+      "n_scored": 54,
+      "n_excluded_unknown": 6,
+      "agreement_pct": 74.1
+    }
+  },
+  "n_common_segments": 60,
+  "n_disagreements": 19
+}

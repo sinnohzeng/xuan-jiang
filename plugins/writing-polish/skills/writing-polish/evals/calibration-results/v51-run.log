@@ -1,0 +1,77 @@
+[calib] starting: total=60 rounds=1 threshold=0.5 model=from-config
+  [1/60] cicpa-349bf83-before-0000 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [2/60] cicpa-349bf83-before-0001 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [3/60] cicpa-349bf83-after-0002 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [4/60] cicpa-349bf83-after-0003 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [5/60] cicpa-349bf83-before-0004 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [6/60] cicpa-349bf83-before-0005 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [7/60] cicpa-349bf83-after-0006 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [8/60] cicpa-349bf83-before-0007 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [9/60] cicpa-349bf83-after-0008 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [10/60] cicpa-349bf83-after-0009 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [11/60] cicpa-349bf83-after-0010 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [12/60] cicpa-349bf83-after-0011 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [13/60] cicpa-349bf83-after-0012 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [14/60] cicpa-349bf83-after-0013 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [15/60] cicpa-349bf83-after-0014 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [16/60] cicpa-4f098b3-after-0015 scores={'D1': 'unknown', 'D2': 'unknown', 'D3': 'unknown', 'D4': 'unknown', 'D5': 'unknown'}
+  [17/60] cicpa-6d25ff5-after-0016 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [18/60] cicpa-6d25ff5-before-0017 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [19/60] cicpa-6d25ff5-after-0018 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [20/60] cicpa-6d25ff5-before-0019 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [21/60] cicpa-6d25ff5-after-0020 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [22/60] cicpa-6d25ff5-after-0021 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [23/60] cicpa-6d25ff5-after-0022 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [24/60] cicpa-6d25ff5-after-0023 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [25/60] cicpa-6d25ff5-after-0024 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [26/60] cicpa-6d25ff5-before-0025 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [27/60] cicpa-6d25ff5-after-0026 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [28/60] cicpa-6d25ff5-after-0027 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [29/60] cicpa-6d25ff5-before-0028 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [30/60] cicpa-6d25ff5-after-0029 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [31/60] cicpa-6d25ff5-after-0030 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [32/60] cicpa-6d25ff5-before-0031 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [33/60] cicpa-6d25ff5-after-0032 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [34/60] cicpa-6d25ff5-before-0033 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [35/60] cicpa-6d25ff5-after-0034 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [36/60] cicpa-6d25ff5-after-0035 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [37/60] cicpa-6d25ff5-after-0036 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [38/60] cicpa-6d25ff5-after-0037 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [39/60] cicpa-6d25ff5-after-0038 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [40/60] cicpa-6d25ff5-before-0039 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [41/60] cicpa-6d25ff5-after-0040 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [42/60] cicpa-6d25ff5-after-0041 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [43/60] cicpa-6d25ff5-before-0042 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [44/60] cicpa-6d25ff5-before-0043 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [45/60] cicpa-6d25ff5-after-0044 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [46/60] cicpa-6d25ff5-before-0045 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [47/60] cicpa-6d25ff5-after-0046 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [48/60] cicpa-6d25ff5-after-0047 scores={'D1': 'unknown', 'D2': 'unknown', 'D3': 'unknown', 'D4': 'unknown', 'D5': 'unknown'}
+  [49/60] cicpa-6d25ff5-after-0048 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [50/60] cicpa-6d25ff5-after-0049 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [51/60] cicpa-6d25ff5-after-0050 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [52/60] cicpa-6d25ff5-after-0051 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [53/60] cicpa-6d25ff5-before-0052 scores={'D1': 0, 'D2': 1, 'D3': 0, 'D4': 2, 'D5': 0}
+  [54/60] cicpa-6d25ff5-after-0053 scores={'D1': 0, 'D2': 1, 'D3': 0, 'D4': 2, 'D5': 0}
+  [55/60] cicpa-6d25ff5-before-0054 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [56/60] cicpa-6d25ff5-before-0055 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [57/60] cicpa-6d25ff5-after-0056 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [58/60] cicpa-6d25ff5-after-0057 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [59/60] cicpa-6d25ff5-after-0058 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+  [60/60] cicpa-6d25ff5-after-0059 scores={'D1': 0, 'D2': 0, 'D3': 0, 'D4': 0, 'D5': 0}
+[calib] judge phase done in 3497s, results: /Users/hubby/Workspace/xuan-jiang/plugins/writing-polish/skills/writing-polish/evals/calibration-results/judge-results.jsonl
+[κ] gold=173 predict=60 common=60
+[κ] D1: κ=0.0 acc=93.0% (n=43, unk=17)
+[κ] D2: κ=0.0 acc=97.5% (n=40, unk=20)
+[κ] D3: κ=1.0 acc=100.0% (n=40, unk=20)
+[κ] D4: κ=0.655 acc=97.6% (n=41, unk=19)
+[κ] D5: κ=0.0 acc=74.1% (n=54, unk=6)
+[κ] overall weighted κ = 0.307
+[κ] wrote /Users/hubby/Workspace/xuan-jiang/plugins/writing-polish/skills/writing-polish/evals/calibration-results/{cohen_kappa.json, disagreement.md, per_segment.csv}
+
+================ Calibration Gate ================
+Overall weighted κ = 0.307 (threshold = 0.5)
+Per-dim breakdown: see /Users/hubby/Workspace/xuan-jiang/plugins/writing-polish/skills/writing-polish/evals/calibration-results/cohen_kappa.json
+Disagreements: see /Users/hubby/Workspace/xuan-jiang/plugins/writing-polish/skills/writing-polish/evals/calibration-results/disagreement.md
+==================================================
+⚠️  κ below threshold — analyze disagreement.md before adjusting prompt

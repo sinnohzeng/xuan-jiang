@@ -2,6 +2,59 @@
 
 All notable changes to xuan-jiang `writing-polish` skill are documented here. Format follows [Keep a Changelog 1.1](https://keepachangelog.com/en/1.1.0/), versioning follows [Semver 2.0](https://semver.org/).
 
+## [5.0.0] — 2026-05-27
+
+### TL;DR
+
+模型解耦三层 hybrid 上线：L1 硬 Gate（脚本零模型）+ L2 LLM Judge（主对话执行，零外部 API）+ L3 多智能体审校（clean-context subagent）。对标 Anthropic 官方 `doc-coauthoring` SKILL 范式（纯 markdown instructions，0 行 API 调用代码）。
+
+### Added
+
+- **Layer 2 / LLM Judge 主对话执行范式**（SKILL.md §4.4）：Claude Code 当前主对话模型即 judge 模型，自动跟随 IDE 模型升级。不调 API、不读 `~/.config/xuan-jiang/config.yaml`、不需要 BYOM env vars
+- **Layer 3 / 多智能体审校 5 个 prompt 模板**（`prompts/multi-agent/`）：
+  - `_task-spec-skeleton.md` — 评审任务书六要素骨架（角色 / 路径 / 维度 / 约束 / 输出格式 / 输出上限）
+  - `r1.md` — 3-5 视角并行评议（事实 / 文风 / 咨询身份 / IA / a11y），clean context 反推 spec
+  - `r2.md` — fresh-eye 反查，不传 R1 trajectory（Cognition 2026-04 + Devin 实证范式）
+  - `pre-mod.md` — 动笔前方案审议（绿黄红灯结论 + 替代路径）
+  - `orchestrator.md` — 主对话整合 finding 的 P0-P5 优先级 + 决策三问 + 收敛判停（21% 采纳率 / severe=0 / 5 轮硬上限）
+- **SKILL.md §4.5 Layer 3 触发条件**：opt-in / ≥ 3000 字 / 高 stakes 文体 / Layer 2 连退 2 次
+- **SKILL.md §4.5 决策三问机械化 checklist**：违反 SSOT 吗 / 颗粒度增益吗 / 重复加严吗
+- **§4.2 三层架构总览表**：明确各 Layer 角色 / 谁执行 / 何时跑 / 模型依赖
+
+### Changed (Breaking)
+
+- **生产路径不再调外部 API**：v4.3 / v5.0-rc1 的 `scripts/llm-judge-runner.py` + `model_adapter.py` + `self-refine-loop.py` 标记为 **DEV-ONLY**，仅用于 `evals/calibration-runner.sh` 跨模型一致度回归。下游若 import 这些脚本作 library 使用会断（cicpa 项目已验证无依赖）
+- **plugin.json description** 重写突出模型解耦三层 hybrid
+- **keywords** 新增 `llm-as-judge`、`multi-agent-review`、`model-decoupled`、`hybrid`
+
+### Inherited from v5.0-rc1（2026-05-20 Sprint 1 已 ship 但未发版）
+
+- `references/constitution.md`（377 行，5 维 rubric 成文宪法，按 8 文体切片）
+- `prompts/llm-judge-research-report.md`（咨询报告 5 维 rubric judge prompt）
+- `evals/calibration-set.jsonl`（173 段 cicpa auto-baseline）
+- `evals/cohen-kappa.py` + `evals/calibration-runner.sh`
+- baseline κ = 0.368（详 `evals/calibration-results-baseline-v50rc1/`）：D2/D3 真校准胜利 κ=1.0、D5 模板感 74.5% 是 v5.1+ 改进目标
+
+### Sprint 2 决策（接受 baseline ship）
+
+Sprint 2 (2026-05-21) 加 8 段党政公文对标范例的 v5.1 prompt 尝试 FAIL（D5 几乎无变化 74.5%→74.1%、overall κ 退步 0.368→0.307、唯一亮点 D4 κ 从 0 跃至 0.655）。结合猪猪老公 2026-05-27 决策"模型解耦 + 尽快上线 + 不纠结小细节"，v5.0.0 stable 接受 v5.0-rc1 baseline。κ 数值改进留给 v5.1+，本版聚焦把范式跑通到 Claude Code 用户手里。
+
+### Verified
+
+- SKILL.md 重写后 270 → 344 行（HumanLayer ≤ 400 行可接受）
+- 5 个 multi-agent prompt 文件落盘，每个 < 250 行
+- 3 个 deprecated 脚本头部加注释，evals 期仍可调
+- plugin.json / marketplace.json 版本 + description + keywords 三处同步
+- cicpa 项目无 import 旧 runner 依赖（`grep -rln "llm-judge-runner\|model_adapter\|self-refine-loop" ~/Workspace/cicpa` 无命中）
+
+### Migration
+
+- 升级到 v5.0.0 后**无需**改任何 env vars / yaml config
+- 之前依赖 `XUAN_JIANG_JUDGE_BASE_URL` 等 BYOM env 的用户：env 仍兼容（dev-only calibration 脚本继续支持），但生产路径不再读
+- cicpa 等下游项目直接拉新版即可，不需要改集成代码
+
+---
+
 ## [4.3.0] — 2026-05-08
 
 ### Added

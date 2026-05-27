@@ -1,12 +1,12 @@
 {
   "name": "writing-polish",
-  "version": "4.3.0",
-  "description": "Professional Chinese writing skill based on 《怎样写作》(任仲然) methodology with 230+ anti-AI-taste rules. v4.3 adds context-aware whitelists (firewall in IT context, 对标 in 党政咨询 context auto-exempt via ±2 line window), dynamic density thresholds by sentence count, 5 consulting-report-specific constraints (§1.8), 11 real-world anchors (incl. cicpa consulting template), and evals dual-track (LLM behavior + 6 scan regression fixtures). 基于专业方法论的中文写作辅助与审稿润色，v4.3 新增上下文感知白名单 + 千句密度动态阈值 + 咨询报告专属约束 + 11 篇真实锚本 + 双轨 evals 体系。",
+  "version": "5.0.0",
+  "description": "Professional Chinese writing skill based on 《怎样写作》(任仲然) methodology with 230+ anti-AI-taste rules. v5.0 model-decoupled three-layer hybrid: L1 hard-gate (scan-ai-taste.sh, zero model), L2 LLM Judge executed by Claude Code main agent (no external API, no BYOM env), L3 multi-agent review via clean-context subagents (R1 parallel views + R2 fresh-eye + Pre-modification advisory). Mirrors Anthropic doc-coauthoring SKILL paradigm (pure markdown instructions, 0 API calls). Inherits v4.3 context-aware whitelists, dynamic density thresholds, consulting-report constraints (§1.8), 11 real-world anchors. 基于专业方法论的中文写作辅助与审稿润色，v5.0 模型解耦三层 hybrid：L1 硬 Gate 脚本 + L2 主对话 LLM Judge（零外部 API） + L3 多智能体审校（clean-context subagent）。对标 Anthropic 官方 doc-coauthoring 范式，纯 markdown instructions、0 行 API 调用。",
   "author": {
     "name": "sinnohzeng"
   },
   "repository": "https://github.com/sinnohzeng/xuan-jiang",
   "license": "MIT",
-  "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "renzhongran", "context-aware", "consulting-report"],
+  "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "renzhongran", "context-aware", "consulting-report", "llm-as-judge", "multi-agent-review", "model-decoupled", "hybrid"],
   "skills": "./skills/"
 }

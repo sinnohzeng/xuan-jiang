@@ -1,0 +1,39 @@
+# xuan-jiang BYOM 示例：切阿里云百炼 Qwen3.6-Max-Preview
+#
+# 用法：复制此文件到 ~/.config/xuan-jiang/config.yaml
+# 或项目根 .xuan-jiang.yaml
+#
+# 凭据：env DASHSCOPE_API_KEY 必须已配置
+#       endpoint：https://dashscope.aliyuncs.com/compatible-mode/v1
+
+judge:
+  provider: openai-compatible
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  model: qwen3.6-max-preview
+  api_key_env: DASHSCOPE_API_KEY
+  temperature: 0.0
+  max_tokens: 4096
+  vote_rounds: 3
+  # Qwen 必传：关闭思考链，否则 API 超时
+  extra_body:
+    enable_thinking: false
+
+reviewer:
+  provider: openai-compatible
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  model: qwen3.6-max-preview
+  api_key_env: DASHSCOPE_API_KEY
+  temperature: 0.2
+  max_tokens: 8192
+  extra_body:
+    enable_thinking: false
+
+rewriter:
+  provider: openai-compatible
+  base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  model: qwen3.6-max-preview
+  api_key_env: DASHSCOPE_API_KEY
+  temperature: 0.3
+  max_tokens: 16384
+  extra_body:
+    enable_thinking: false
