@@ -1,5 +1,11 @@
 """Self-Refine 闭环（xuan-jiang v5.0）。
 
+**DEV-ONLY / DEPRECATED for production path（v5.0.0 起）**
+
+v5.0.0 模型解耦后，生产路径的 Self-Refine 闭环由 Claude Code 主对话同上下文内完成
+（judge → rewrite → judge 全部由主对话一个模型走，最多 3 轮）。本脚本仅用于跨模型 calibration
+对比，验证不同 base model 在同一 prompt 下的 self-refine 收敛性。
+
 机制：
   for round_i in range(max_rounds):
       score_t = judge(file)

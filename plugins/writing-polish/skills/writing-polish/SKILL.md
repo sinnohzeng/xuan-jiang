@@ -6,9 +6,9 @@ effort: max
 paths: "**/*.docx, **/*.md, **/*.txt"
 ---
 
-# 写作润色审稿 v4.3
+# 写作润色审稿 v5.0（三层 hybrid，模型解耦）
 
-基于《怎样写作》（任仲然）方法论 + 230 余条 AI 味约束的中文写作 skill。v4.3 新增上下文感知白名单（防火墙 IT 语境 / 对标 党政语境自动豁免）、千句密度动态阈值、咨询报告专属约束（§1.8）、11 篇真实锚本与双轨 evals 体系。
+基于《怎样写作》（任仲然）方法论 + 230 余条 AI 味约束 + 中注协多智能体审校 SOP 的中文写作 skill。v5.0 范式：**Layer 1 硬 Gate（脚本零模型） → Layer 2 LLM Judge（主对话） → Layer 3 多智能体审校（subagent）**。零外部 API 调用 —— judge / reviewer / rewriter 三角色都由 Claude Code 当前主对话模型扮演（对标 Anthropic 官方 `doc-coauthoring` SKILL 范式：纯 markdown instructions，0 行 API 调用代码）。
 
 > “好文稿好文章无疑是写出来的，但更重要的是改出来的。”
 > “热写稿，冷改稿。”
@@ -26,6 +26,8 @@ paths: "**/*.docx, **/*.md, **/*.txt"
 | 查公文格式国标 | `references/gongwen-format.md` |
 | scan 失败排错 | §4.4 失败重写指引 + `references/failure-cases.md` + `TROUBLESHOOTING.md` |
 | 看跨工具对照 | `docs/research/cross-skill-benchmark.md` |
+| 用 v5 LLM Judge 评分 | §4.4 + `references/constitution.md` + `prompts/llm-judge-research-report.md` |
+| 派多智能体审校 | §4.5 + `prompts/multi-agent/{r1,r2,pre-mod,orchestrator}.md` |
 
 ## 1. 触发判断（Decision Tree）
 
@@ -106,7 +108,7 @@ paths: "**/*.docx, **/*.md, **/*.txt"
 
 **修订模式克制原则**：只改批注明确指向段落或事实性错误，不做文风层面全面改写，即使段落有 AI 味也克制处理；每处改动前自问“客户能在 track changes 里一眼看懂吗”。
 
-## 4. AI 味约束（三步检查，零容忍）
+## 4. AI 味自检（三层 hybrid，零容忍）
 
 ### 4.1 工作哲学
 
@@ -115,41 +117,30 @@ paths: "**/*.docx, **/*.md, **/*.txt"
 
 底层机制原理：见 `references/anti-ai-taste-anchors.md` §0。
 
-### 4.2 三步检查
+### 4.2 三层架构总览
 
-#### 第一步：写作前 (Preventive)
+| Layer | 角色 | 谁执行 | 何时跑 | 模型依赖 |
+|---|---|---|---|---|
+| **L1 / 硬 Gate** | 30 条 codepoint 级机械红线（标点 / em-dash / 文号 / 元注释字面量） | `scripts/scan-ai-taste.sh` | 交付前必跑 | 零 |
+| **L2 / LLM Judge** | 5 维 rubric pointwise 评分（D1 标点 / D2 套话 / D3 戏剧化 / D4 党政失配 / D5 模板感）+ Self-Refine ≤ 3 轮 | **主对话**读 `references/constitution.md` + `prompts/llm-judge-research-report.md` | L1 PASS 后默认跑 | Claude Code 当前主对话模型 |
+| **L3 / 多智能体审校** | R1 并行评议（3-5 视角不重叠） + R2 fresh-eye 反查 + Pre-modification 动笔前审议 | **spawn clean-context subagent**（Agent 工具）| 高 stakes 触发（见 §4.5） | Claude Code 当前主对话模型 |
+
+**模型解耦原则**：本 skill 不指定 judge / reviewer 模型，也不调外部 API。Claude Code 当前会话模型即 judge 模型，模型升级自动跟随。`evals/` 目录下的 `llm-judge-runner.py` / `model_adapter.py` / `self-refine-loop.py` 是 dev-only 跨模型 calibration 工具，生产路径不依赖。
+
+### 4.3 Layer 1 / 硬 Gate（脚本，零模型）
+
+#### 4.3.1 写作前 (Preventive)
 
 启动写作或审稿任务前，必读：
 1. `references/anti-ai-taste-anchors.md` 的 §0 核心机制和 §1 红线 124 条 + §1.5 戏剧化分类 + §1.6 客服话术 + §1.7 Wikipedia 长尾盲区
 2. `references/ai-taste-examples.md` 的反例对照（让眼睛记住什么是 AI 味）
 3. 对应文体在 `assets/anchor-essays/` 中的 1 至 2 个原书范例，以及 `assets/real-world-anchors/` 中的真实文件参考
 
-#### 第二步：写作中 (In-line)
+#### 4.3.2 写作中 (In-line)
 
-每段写完后必做心理 grep，任何一项命中立即重写本段。下列 checklist 列举禁用词作教学示例，scan-ai-taste.sh 会跳过本段扫描。
+每段写完后做心理 grep，命中即重写。完整禁用词清单见 `references/anti-ai-taste-anchors.md` §1，本 SKILL 不展开列举（避免红线词污染 scanner 扫描结果）。
 
-<!-- scan-skip -->
-
-- [ ] 没有破折号 — 或 ——
-- [ ] 没有 xxx 括号内插入式补充
-- [ ] 没有 接住 共情 看见你 客服腔
-- [ ] 没有 赋能 重塑 闭环 抓手 链路 打造 公文黑话
-- [ ] 没有 在某种意义上说 不可磨灭的 在...的背景下 翻译腔
-- [ ] 没有 首先...其次...最后 三段式套壳
-- [ ] 没有 值得注意的是 综上所述 由此可见 套话连接词
-- [ ] 没有 令人印象深刻 至关重要 充满活力 情感空话
-- [ ] 没有 不是 X 而是 Y 不仅...更是 否定平行
-- [ ] 段尾没有 体现了 X 反映了 Y 彰显了 Z 分词挂总结
-- [ ] 中文里没有 ASCII 直引号 和直角引号「」，要用大陆国标弯引号
-- [ ] 没有数学符号加号 等号 箭头做并列连词
-- [ ] 没有 三层防御 闸门 跑通 翻车 战斗化叙事（§1.5.1）
-- [ ] 没有 抓手 闭环 对标 拉通 颗粒度 大厂黑话（§1.5.2）
-- [ ] 没有 本仓库 锚点 硬约束 dogfooding 网络口语（§1.5.3）
-- [ ] 没有 作为一个 AI 助手 元注释开头（§1.6）
-
-<!-- /scan-skip -->
-
-#### 第三步：交付前 (Gate)，必须执行
+#### 4.3.3 交付前 Gate (必须执行)
 
 ```bash
 bash scripts/scan-ai-taste.sh "$OUTPUT_FILE"
@@ -163,7 +154,69 @@ bash scripts/scan-ai-taste.sh "$OUTPUT_FILE"
 - 已经 ≤ 3、核心 ≤ 3、这一 ≤ 2
 - 句长标准差 ≥ 8
 
-### 4.3 重要保留项（NOT AI 味，应主动使用）
+### 4.4 Layer 2 / LLM Judge（主对话执行，模型解耦）
+
+**执行者**：Claude Code 当前主对话模型。**不**调外部 API、**不**读 `~/.config/xuan-jiang/config.yaml`、**不**需要任何 BYOM 环境变量。
+
+**触发**：L1 PASS 后默认跑（除非用户显式说"跳过 LLM judge"）。
+
+**输入**（主对话顺序读取，全程无脚本调用）：
+1. 待审文档全文（主对话已在上下文）
+2. `references/constitution.md`（5 维 rubric 成文宪法 SSOT，按 8 文体切片）
+3. `prompts/llm-judge-research-report.md`（咨询报告 judge prompt；其他文种走 `references/genre-guide.md` 选对应 sub-rubric）
+
+**执行步骤**（主对话顺序）：
+1. **文种识别** → 按 `references/genre-guide.md` 加载对应 sub-rubric
+2. **5 维 pointwise 评分**（0-3 分 + `unknown` 逃生舱）：
+   - D1 标点合规（GB/T 15834）
+   - D2 AI 套话密度
+   - D3 戏剧化 / 隐喻 / 大厂黑话
+   - D4 党政语境失配
+   - D5 模板感 / 结构同质化
+3. **Self-Refine 闭环**：任一维 ≥ 2 → 主对话改稿 → 重新 5 维评分 → 分数单调升才继续，最多 3 轮（4 轮以上 churn，Self-Refine arxiv 2303.17651 实证上限）
+4. **输出 judge report**：5 维分 + 关键违反引文 + 修订建议
+
+**为什么主对话当 judge 而不调脚本 API**：
+- Anthropic 官方 `doc-coauthoring` SKILL 范式：纯 markdown instructions，0 行 API 调用
+- 模型自动跟随 Claude Code 升级（Sonnet 4.6 → 4.7 → 5 不需要 BYOM 切换）
+- 单一上下文窗口下 judge / rewriter 同一个模型，self-refine 闭环最自然
+- 零 API key、零 model_adapter setdefault bug 风险
+
+### 4.5 Layer 3 / 多智能体审校（spawn clean-context subagent）
+
+**触发条件**（任一即触发，主对话自行判断）：
+- 用户显式 opt-in（"派几个 agent 审一遍 / 多智能体 review / 用 v5 完整跑一遍 / R1+R2"）
+- 文档 ≥ 3000 字
+- 文种 ∈ {咨询报告 G3 / 公文 G1 / 述职 G4 / 大会讲话 G2}
+- 用户已对 Layer 2 输出连退 2 次（暗示 L2 看不出问题）
+
+**执行范式**（用 Claude Code `Agent` 工具 spawn clean-context subagent，**不**调脚本）：
+
+1. **Pre-modification（动笔前方案审议）**
+   - 主对话写改稿草案 + 改动 rationale
+   - `Agent(subagent_type="general-purpose", prompt=<prompts/multi-agent/pre-mod.md 套用 placeholder>)`
+   - subagent 审议方案 → 主对话决策是否动手
+
+2. **R1（3-5 视角并行评议）**
+   - 同一条消息内 spawn 多个 `Agent` 并行调用（不重叠维度：fact / style / consulting / IA / a11y）
+   - 每个用 `prompts/multi-agent/r1.md` 模板，仅替换视角 placeholder
+   - subagent clean context 反推 spec（Cognition 2026-04 范式，Devin 实测 +2 bugs/PR 58% severe）
+
+3. **R2（fresh-eye 反查）**
+   - spawn 1 个 fresh subagent **不传 R1 trajectory**
+   - 用 `prompts/multi-agent/r2.md` 模板反查"R1 之后还能发现什么"
+
+4. **主对话 orchestrator-synthesis**
+   - 读 `prompts/multi-agent/orchestrator.md` 按 P0-P5 优先级整合：重大事实 → 客户敏感 → 严重 AI 腔 → 中度 → 文风 → 美学
+   - **Edit 串行**（不并行写文件）+ **行号倒序**（避免行号偏移）
+   - **收敛判停**：连续 2 轮 < 20% 采纳率 OR severe = 0 → 退出
+
+**主对话应用每条 finding 前必跑（决策三问机械化 checklist）**：
+- [ ] 这条 finding 违反了 SSOT 吗？（违反才采纳）
+- [ ] 这条 finding 颗粒度有增益吗？（同义改写不采纳）
+- [ ] R1 多个 finding 重复加严同一处吗？（取最严不取并集）
+
+### 4.6 重要保留项（NOT AI 味，应主动使用）
 
 - **“一是…二是…三是…”** 是党政公文标准列举法，不是 AI 痕迹，国办、财政部、DRC 真实文件大量使用
   - 一级：中文数字“一、二、三”
@@ -173,15 +226,13 @@ bash scripts/scan-ai-taste.sh "$OUTPUT_FILE"
 - **结构引入语**：按照…要求、围绕…、聚焦…、依托…、基于…、通过…
 - **公文动词**：推动、推进、加快、加强、强化、完善、健全（在范例中验证过的）
 
-### 4.4 失败重写指引（scan FAIL 时怎么办）
-
-第三步 scan 失败后，按下面三步循环重写：
+### 4.7 失败重写指引（L1/L2 FAIL 时）
 
 <!-- scan-skip -->
-1. **定位**：看 scan 输出指向的违规行号，从上到下处理。同一行多类违规时优先改 §1.4 标点（最容易改）和 §1.5.1 戏剧化（替换词清单见 anchors §1.5.1）。
+1. **定位**：看 scan 输出（L1）或 judge report（L2）指向的违规位置，从上到下处理。同一行多类违规时优先改 §1.4 标点（最容易改）和 §1.5.1 戏剧化（替换词清单见 anchors §1.5.1）。
 2. **选范例**：从 `assets/anchor-essays/` 或 `assets/real-world-anchors/` 选一个同文体段落，看真实公文怎么表达同一意思。
 3. **重写**：不要做“机械替换为同义词”。例：把“打通业务闭环”改成“打通业务回路”仍是黑话；正确做法是改成“完成业务流程的各个环节”，回到事实陈述。
-4. **再扫**：重写后再跑 scan，直至退出码 0。多轮失败查 `references/failure-cases.md` 同类历史案例与 `TROUBLESHOOTING.md`，或调 `bash scripts/auto-fix-loop.sh “$FILE”` 让脚本尝试 1 至 2 轮自动修复。
+4. **再扫**：重写后再跑 L1 scan + L2 主对话 judge，直至 L1 退出码 0 + L2 五维全部 ≤ 1。多轮失败查 `references/failure-cases.md` 同类历史案例与 `TROUBLESHOOTING.md`。
 <!-- /scan-skip -->
 
 ## 5. 输出格式
@@ -239,6 +290,7 @@ bash scripts/scan-ai-taste.sh "$OUTPUT_FILE"
 | `gongwen-format.md` | GB/T 9704 党政公文格式规范 | 公文格式化 |
 | **`anti-ai-taste-anchors.md`** | **124 条红线、60 条橙线、17 条结构反模式以及量化阈值** | **任何写作或修改前必读** |
 | **`ai-taste-examples.md`** | **反例对照（含按文体、按修改深度分维度）** | **首次使用此技能时必读** |
+| **`constitution.md`** | **v5 LLM Judge 成文宪法，5 维 rubric 按 8 文体切片** | **Layer 2 跑前必读** |
 | `failure-cases.md` | scan 失败案例库与重写过程 | scan 多轮失败时 |
 | `citation-spec.md` | 模糊归因的具体改写模板 | 引用 / 归因写作时 |
 
@@ -250,20 +302,42 @@ bash scripts/scan-ai-taste.sh "$OUTPUT_FILE"
 | `real-world-anchors/` | 真实文件参考，来源含国办、国家信息中心、国务院发展研究中心、财政部 | 公文或咨询报告参照 |
 | `docx-templates/` | DOCX 修订模式模板 | DOCX 回写时复用 |
 
+### prompts（v5 LLM Judge / 多智能体审校的 instructions）
+
+| 文件 | 用途 | 何时用 |
+|---|---|---|
+| `llm-judge-research-report.md` | Layer 2 咨询报告 5 维 rubric judge prompt | L2 跑咨询报告时主对话读 |
+| `multi-agent/r1.md` | Layer 3 R1 并行评议模板（视角 placeholder） | R1 spawn subagent 时套用 |
+| `multi-agent/r2.md` | Layer 3 R2 fresh-eye 反查模板 | R2 spawn fresh subagent 时套用 |
+| `multi-agent/pre-mod.md` | Layer 3 Pre-modification 动笔前方案审议模板 | 重大改稿前审议方案 |
+| `multi-agent/orchestrator.md` | Layer 3 主对话整合 finding 的 P0-P5 优先级 + 决策三问 | R1+R2 收完整合时主对话读 |
+| `multi-agent/_task-spec-skeleton.md` | 评审任务书六要素骨架（角色 / 路径 / 维度 / 约束 / 输出格式 / 输出上限） | 自定义多智能体任务时套用 |
+
 ### scripts（自动化工具）
+
 | 文件 | 用途 |
 |---|---|
-| `scan-ai-taste.sh` | **L3 Gate：交付前必跑的 AI 味自动扫描** |
+| `scan-ai-taste.sh` | **Layer 1 Gate：交付前必跑的 AI 味自动扫描** |
+| `scan-hard-gate.sh` | Layer 1 codepoint 级硬规则（标点 / em-dash / 文号 / 元注释字面量 30 条） |
 | `check-cn-quotes.py` | 标点 / 中英混排校验（弯引号、加号、直角引号、英文标点穿插） |
 | `word-count-check.sh` | 句长方差与段落同质化检查 |
 | `check-dependencies.sh` | pandoc / docx-editor 等依赖检查 |
 | `auto-fix-loop.sh` | scan 失败时自动尝试 1 至 2 轮修复 |
 | `docx-review-workflow.py` | DOCX 修订模式一键化（读 → scan → track changes → 输出） |
+| `llm-judge-runner.py` | **dev-only**：跨模型 calibration 跑批，**生产路径不调** |
+| `model_adapter.py` | **dev-only**：OpenAI-compatible BYOM 适配器，仅 calibration 期用 |
+| `self-refine-loop.py` | **dev-only**：脚本化 self-refine 闭环，calibration 跨模型对比用 |
 
-### evals（测试用例）
+### evals（dev-only 测试用例 + calibration baseline）
+
 - `evals.json`：20 条真实场景 test prompt，含反向用例与边界 case
+- `calibration-set.jsonl`：173 段 cicpa auto-baseline（v5.0-rc1 Sprint 1）
+- `calibration-results-baseline-v50rc1/`：v5.0 stable baseline κ 报告
+- `cohen-kappa.py` + `calibration-runner.sh`：跨模型一致度回归
 - `README.md`：写作类主观输出 evals 说明
 - `test-runner.sh`：回归测试与 baseline 对比
+
+> 注：v5.0 生产路径（L2 LLM Judge）由主对话直接读 `references/constitution.md` + `prompts/llm-judge-research-report.md` 执行，**不调** `scripts/llm-judge-runner.py`。后者仅用于 dev 期跨模型一致度 calibration。
 
 ### docs（项目级文档）
 - `docs/research/cross-skill-benchmark.md`：跨工具对照记录与季度续抓办法

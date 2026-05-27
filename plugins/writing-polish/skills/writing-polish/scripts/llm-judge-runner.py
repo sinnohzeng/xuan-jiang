@@ -1,5 +1,17 @@
 """Layer 2 LLM Judge 编排器（xuan-jiang v5.0）。
 
+**DEV-ONLY / DEPRECATED for production path（v5.0.0 起）**
+
+v5.0.0 模型解耦后，生产路径的 Layer 2 LLM Judge 由 Claude Code 主对话直接读
+references/constitution.md + prompts/llm-judge-research-report.md 执行，不调本脚本。
+
+本脚本保留用于：
+1. 跨模型 calibration 一致度回归（evals/calibration-runner.sh）
+2. dev 期 prompt 迭代时的批量评分
+3. 非 Claude Code 环境（CI / 其他 agent CLI）应急 fallback
+
+详见 SKILL.md §4.2 三层架构总览。
+
 调用流程：
 1. 加载 default.yaml + 用户/项目 yaml + env 兜底（由 model_adapter.py 实现）
 2. 识别文种（先 frontmatter `type:`，否则简单规则分类）

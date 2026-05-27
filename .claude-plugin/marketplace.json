@@ -10,9 +10,9 @@
     {
       "name": "writing-polish",
       "source": "./plugins/writing-polish/",
-      "description": "Professional writing assistance and revision. v4.3 adds context-aware whitelists + dynamic density thresholds + 11 real-world anchors. 基于《怎样写作》方法论的中文写作辅助与审稿润色，v4.3 新增上下文感知白名单（防火墙 IT 语境 / 对标 党政语境自动豁免）+ 千句密度动态阈值 + 11 篇真实锚本（含 cicpa 第三方咨询交付范本）。",
-      "version": "4.3.0",
-      "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "context-aware", "consulting-report"],
+      "description": "Professional writing assistance and revision. v5.0 model-decoupled three-layer hybrid: L1 hard-gate scan + L2 LLM Judge by main agent + L3 multi-agent review via clean-context subagents. Zero external API. 基于《怎样写作》方法论的中文写作辅助与审稿润色，v5.0 模型解耦三层 hybrid：L1 硬 Gate 脚本 + L2 主对话 LLM Judge + L3 多智能体审校（clean-context subagent）。零外部 API、零 BYOM 环境变量。",
+      "version": "5.0.0",
+      "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "context-aware", "consulting-report", "llm-as-judge", "multi-agent-review", "model-decoupled"],
       "category": "writing"
     }
   ]

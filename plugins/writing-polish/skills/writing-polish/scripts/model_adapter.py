@@ -1,5 +1,10 @@
 """统一封装 Anthropic Messages API + OpenAI-compatible Chat Completions。
 
+**DEV-ONLY / DEPRECATED for production path（v5.0.0 起）**
+
+v5.0.0 模型解耦后，生产路径的 LLM 调用由 Claude Code 主对话承担，不调外部 API。
+本适配器仅用于 evals/calibration 跨模型一致度回归。
+
 调用方按 role（judge / reviewer / rewriter）取适配器，配置走 default.yaml + 用户/项目 yaml +
 env 兜底。所有 provider 输出折叠成纯文本 string，调用方不关心底层 API 差异。
 """
