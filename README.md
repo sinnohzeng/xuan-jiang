@@ -18,14 +18,16 @@
 
 第三种是写出来一眼能看出“机器味”。破折号到处插、括号里塞补充信息、套话连接词反复出现、客服腔情感套话满天飞、伪极客腔战斗化叙事、互联网大厂黑话堆砌。读者看一眼就知道这是 AI 写的。
 
-**v5.1 当前状态**（2026-05-27）：模型解耦三层 hybrid 架构 + 多智能体审校实装。
+**v6.0 当前状态**（2026-05-28）：无历史包袱重构 + 协议化 SKILL + LLM 监督真落地 + 任仲然 65%→79% 继承。
 
-- **L1 硬 Gate**：`scripts/scan-hard-gate.sh`（CI 强制 30 条最小集）+ `scripts/scan-ai-taste.sh`（交付前完整版 230+ 条扫描）
-- **L2 LLM Judge**：主对话 inline 执行（零外部 API），按 5 维 rubric × 8 文体切片打分（D1 标点 / D2 套话 / D3 戏剧化 / D4 党政 vs 大厂 / D5 模板感）
-- **L3 多智能体审校**：主对话即 orchestrator，单消息内并行 spawn 1 路 Opus 4.7 R2 fresh-eye + 3-5 路 Sonnet 4.6 R1 多视角评审（clean-context subagent），收 finding 后按 P0-P5 排序 + 决策三问 + Edit 串行倒序落地。对齐 Anthropic Multi-Agent System 2025-06 + Cognition Devin clean-context 2026-04 范式
-- **v5.1 vs v5.0 关键演进**：从 5 个带 `{{}}` 占位符的模板砍成单一 `prompts/multi-agent/orchestration-guide.md` 判断指南；扩 D5/D4 few-shot 8 例直接落地 v5.0 calibration disagreement 反例；SKILL.md 344→90 行符合 Anthropic Progressive Disclosure
+- **L1 regex 硬 Gate**：`scripts/scan-hard-gate.sh`（CI 强制 30 条最小集）+ `scripts/scan-ai-taste.sh`（交付前 230+ 条 + `--json` / `--log-to` / `--target` flag，主对话可消费 JSON 路由 L2/L3）
+- **L2 主对话内联 self-judge**：SKILL.md §3 内联 D1-D5 mini-rubric（5 行表格 + scoring anchor + 典型 fail），主对话不读 constitution.md 也能完整评分；不确信时再读详细 rubric
+- **L3 clean-context 多 reviewer**：触发条件（draft > 2000 字 / 体裁 ∈ {规范公文/调研/述职/咨询} / L2 任一维 < 3）满足时，主对话单条消息内 spawn 3 个 Agent，prompt 模板 [`prompts/reviewer.md`](plugins/writing-polish/skills/writing-polish/prompts/reviewer.md)，返回严格 JSON 符合 [`schemas/reviewer-output.schema.json`](plugins/writing-polish/skills/writing-polish/schemas/reviewer-output.schema.json)，L2 与 L3 取 min（保守裁判）
+- **零外部 API**：v6.0 起所有 LLM 调用由主 Claude Code session 承担；删除 v5.x dev-only `llm-judge-runner.py` / `model_adapter.py` / `self-refine-loop.py`
+- **三契约层**（schemas/）：scan-output / reviewer-output / eval-record JSON Schema，约束 scan-ai-taste.sh / reviewer Agent / 日志 jsonl 的 I/O 形状
+- **任仲然继承度补齐**：新增 [`writing-coaching-arc.md`](plugins/writing-polish/skills/writing-polish/references/writing-coaching-arc.md)（L1§2 观察+L1§3 摹仿三段弧+L1§4 大胆写+L2§3 规律再造）+ [`peer-vs-self-revision.md`](plugins/writing-polish/skills/writing-polish/references/peer-vs-self-revision.md)（L12 改自己 vs 改他人辨证法 + L3 reviewer "他批"礼貌必读）
 
-完整设计文档见 [docs/rfc/v5.0-llm-judge.md](docs/rfc/v5.0-llm-judge.md)（含 v5.1 演进补遗）和 [plugins/writing-polish/skills/writing-polish/prompts/multi-agent/orchestration-guide.md](plugins/writing-polish/skills/writing-polish/prompts/multi-agent/orchestration-guide.md)。完整 worked example 见 [layer3-walkthrough.md](plugins/writing-polish/skills/writing-polish/references/layer3-walkthrough.md)。
+完整协议见 [`SKILL.md`](plugins/writing-polish/skills/writing-polish/SKILL.md)（212 行，6 段 protocol 剧本）。v5.x → v6.0 break changes + calibration 对比见 [`evals/v6.0-baseline/comparison.md`](plugins/writing-polish/skills/writing-polish/evals/v6.0-baseline/comparison.md)。
 
 ---
 
@@ -43,8 +45,8 @@ writing-polish v4.3 配套了三组方法对应这三种情况。
 - **千句密度动态阈值**：短文 < 200 句 ≤ 3，长文 ≥ 1000 句 ≤ 15。IT 行业必备术语在长文中合理高频不再触发警告
 - **§1.8 咨询报告专属约束**：第三方咨询机构对甲方交付的 5 条身份铁律（不锚甲方规划 / 结论先行 / 不背书厂商 / 「其一/其二」分级 / 多方利益静默）
 - **11 篇真实锚本**：含 cicpa 第三方咨询交付范本 + 政府工作报告对标用法 + 国家数据局 / 网信办 / 发改委公开报告
-- **evals 双轨化**：6 条 fixtures 入库（含 2 条反向哨兵防漏检），test-runner.sh 自动跑 scan 回归
-- ~~v5.0 范式预告~~：v5.0 stable（2026-05-27 上午）已 ship，v5.1 同日晚间补齐多智能体实装 + 8 个 D5/D4 few-shot 反例 + SKILL.md 瘦身。详见本文件顶部 v5.1 现状段 + [docs/rfc/v5.0-llm-judge.md](docs/rfc/v5.0-llm-judge.md)
+- **evals 双轨化**：6 条 fixtures 入库（含 2 条反向哨兵防漏检），fixtures 在 v6.0 已用新 `--json` 输出回归通过；v5.x `test-runner.sh` / `calibration-runner.sh` 已归档 evals/legacy/v5.x/
+- **历史**：v5.0/v5.1 范式探索遗产已被 v6.0 重构超越，详见 CHANGELOG.md v6.0 entry break-change 清单
 
 ---
 

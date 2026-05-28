@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# scan-ai-taste.sh —— writing-polish v4.3 交付前 AI 味自检
+# scan-ai-taste.sh —— writing-polish v6.0 L1 hard gate
 #
-# L3 Gate：在交付任何修改稿前必跑。任何硬约束未达标，禁止交付。
+# v6.0 角色：交付前 AI 味自检 + JSON 输出供主对话 (L2/L3) 路由决策。
+# 在交付任何修改稿前必跑。任何硬约束未达标，禁止交付。
 #
 # 用法：
-#   bash scan-ai-taste.sh /path/to/file.md            # 标准扫描
-#   bash scan-ai-taste.sh /path/to/file.md --suggest-fix  # 含改写建议
-#   bash scan-ai-taste.sh /path/to/file.md --json     # JSON 输出（IDE 集成）
+#   bash scan-ai-taste.sh <file.md>                                # 标准扫描（人类可读）
+#   bash scan-ai-taste.sh --target <file.md>                       # 同上（显式 flag）
+#   bash scan-ai-taste.sh --target <file.md> --suggest-fix         # 含改写建议
+#   bash scan-ai-taste.sh --target <file.md> --json                # JSON 输出（主对话消费）
+#   bash scan-ai-taste.sh --target <file.md> --log-to <jsonl-path> # opt-in v6.1 evolution-queue 日志
+#   bash scan-ai-taste.sh --target <file.md> --json --log-to <p>   # 二者可叠加
 #
 # 退出码：
 #   0  全部红线达标
@@ -14,48 +18,141 @@
 #   2  软阈值违规，建议重写但非阻断
 #   3  使用错误（缺参数 / 文件不存在）
 #
-# 规则定义：本脚本扫描词典与 references/anti-ai-taste-anchors.md 中
-# 的红线编号一一对应。规则总数 156 红 + 60 橙 + 17 结构反模式。
+# JSON 契约：schemas/scan-output.schema.json
+# 日志契约：schemas/eval-record.schema.json
+# 规则定义：references/anti-ai-taste-anchors.md（230+ 条 SSOT，编号一一对应）
 
 set -uo pipefail
 
-FILE="${1:-}"
+FILE=""
 MODE="standard"
-LLM_JUDGE=0
-shift 2>/dev/null || true
-for arg in "$@"; do
-    case "$arg" in
-        --suggest-fix) MODE="suggest" ;;
-        --json) MODE="json" ;;
-        --llm-judge) LLM_JUDGE=1 ;;
+LOG_TO=""
+# legacy positional arg support
+if [ "${1:-}" != "" ] && [ "${1:0:2}" != "--" ]; then
+    FILE="$1"
+    shift
+fi
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --suggest-fix) MODE="suggest"; shift ;;
+        --json) MODE="json"; shift ;;
+        --target) FILE="${2:-}"; shift 2 ;;
+        --log-to) LOG_TO="${2:-}"; shift 2 ;;
+        *) shift ;;
     esac
 done
 
-# v5.0 范式预告：--llm-judge flag 在 v4.3 仅打印 RFC 提示，不实际调用 LLM
-if [ "$LLM_JUDGE" -eq 1 ]; then
-    echo "================================================"
-    echo "  --llm-judge flag detected (v4.3 stub)"
-    echo "================================================"
-    echo
-    echo "  v4.3 仍以硬正则匹配 + 上下文白名单为基础。"
-    echo "  LLM-as-judge 混合架构（D3 隐喻 / D4 大厂vs党政 / D5 散文 AI 体）"
-    echo "  将在 v5.0 落地。"
-    echo
-    echo "  详见 RFC：docs/rfc/v5.0-llm-judge.md"
-    echo
-    echo "  本次扫描仍走 v4.3 硬规则路径。"
-    echo "================================================"
-    echo
-fi
-
 if [ -z "$FILE" ]; then
-    echo "用法: bash scan-ai-taste.sh <file.md> [--suggest-fix|--json]"
+    echo "用法: bash scan-ai-taste.sh <file.md|--target file.md> [--suggest-fix|--json|--log-to <jsonl-path>]" >&2
     exit 3
 fi
 if [ ! -f "$FILE" ]; then
-    echo "错误: 文件不存在: $FILE"
+    echo "错误: 文件不存在: $FILE" >&2
     exit 3
 fi
+
+# v6.0: capture stdout into a buffer when JSON mode or --log-to is set.
+# emit_results_on_exit (trap EXIT) parses the buffer and emits JSON / appends log line.
+if [ "$MODE" = "json" ] || [ -n "$LOG_TO" ]; then
+    JSON_BUF=$(mktemp)
+    exec 3>&1
+    exec 1>"$JSON_BUF"
+fi
+
+emit_results_on_exit() {
+    local ec=$?
+    # always clean up preprocessing temp file (originally guarded by a later inline trap)
+    [ -n "${SCAN_TMP:-}" ] && rm -f "$SCAN_TMP"
+    [ -z "${JSON_BUF:-}" ] && return
+    [ ! -f "${JSON_BUF}" ] && return
+    exec 1>&3 || true
+    python3 - "$JSON_BUF" "$ORIG_FILE" "$ec" "$MODE" "$LOG_TO" <<'PYEOF'
+import sys, re, json, hashlib, os
+from datetime import datetime, timezone
+
+buf_path, file_path, exit_code, mode, log_to = (
+    sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4], sys.argv[5]
+)
+try:
+    output = open(buf_path, 'r', encoding='utf-8').read()
+except Exception:
+    output = ""
+ansi = re.compile(r'\x1b\[[0-9;]*m')
+output_plain = ansi.sub('', output)
+red_total = len(re.findall(r'^\s+✗', output_plain, re.MULTILINE))
+soft_total = len(re.findall(r'^\s+⚠', output_plain, re.MULTILINE))
+
+cats = []
+current = None
+for line in output_plain.splitlines():
+    cat_m = re.match(r'^▼\s+(.+?)$', line)
+    if cat_m:
+        current = {'name': cat_m.group(1).strip(), 'red': 0, 'soft': 0}
+        cats.append(current)
+    elif current is not None:
+        if re.match(r'^\s+✗', line):
+            current['red'] += 1
+        elif re.match(r'^\s+⚠', line):
+            current['soft'] += 1
+cats = [c for c in cats if c['red'] > 0 or c['soft'] > 0]
+
+try:
+    text = open(file_path, 'r', encoding='utf-8').read()
+except Exception:
+    text = ""
+char_count = len(text)
+sentence_count = len(re.findall(r'[。！？；]', text))
+paragraph_count = len([p for p in text.split('\n\n') if p.strip()])
+draft_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
+
+if mode == 'json':
+    result = {
+        "version": "6.0",
+        "file": os.path.abspath(file_path),
+        "draft_hash": draft_hash,
+        "exit_code": exit_code,
+        "summary": {
+            "red_line_violations_total": red_total,
+            "soft_warnings_total": soft_total,
+            "categories": cats,
+        },
+        "stats": {
+            "char_count": char_count,
+            "sentence_count": sentence_count,
+            "paragraph_count": paragraph_count,
+        },
+        "human_readable_output": output_plain,
+    }
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+
+if log_to:
+    log_dir = os.path.dirname(os.path.abspath(log_to))
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+    final_action = "passed" if exit_code == 0 else ("fixed" if exit_code == 2 else "rolled_back")
+    log_entry = {
+        "version": "6.0",
+        "timestamp": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+        "draft_hash": draft_hash,
+        "protocol": "v6.0",
+        "mode": "audit",
+        "scan_summary": {
+            "red_line_violations_total": red_total,
+            "soft_warnings_total": soft_total,
+            "categories": cats,
+        },
+        "final_action": final_action,
+    }
+    with open(log_to, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+
+try:
+    os.unlink(buf_path)
+except Exception:
+    pass
+PYEOF
+}
+trap emit_results_on_exit EXIT
 
 # 预处理：豁免 <!-- scan-skip --> 至 <!-- /scan-skip --> 之间的段落
 # 元论述（规则定义、错误对照、引用违规词举例）专用
@@ -64,7 +161,7 @@ fi
 # 列举触发词作为元论述。
 ORIG_FILE="$FILE"
 SCAN_TMP=$(mktemp -t scan-ai-taste.XXXXXX.md)
-trap 'rm -f "$SCAN_TMP"' EXIT
+# SCAN_TMP cleanup is handled by emit_results_on_exit (trap EXIT set earlier)
 awk '
     BEGIN { in_fm=0; fm_done=0 }
     NR==1 && /^---$/ { in_fm=1; print ""; next }

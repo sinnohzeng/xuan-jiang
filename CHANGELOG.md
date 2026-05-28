@@ -2,6 +2,57 @@
 
 All notable changes to xuan-jiang `writing-polish` skill are documented here. Format follows [Keep a Changelog 1.1](https://keepachangelog.com/en/1.1.0/), versioning follows [Semver 2.0](https://semver.org/).
 
+## [6.0.0] — 2026-05-28（无历史包袱重构：协议化 SKILL + LLM 监督真落地 + 任仲然继承度补齐）
+
+### TL;DR
+
+v6.0 大刀阔斧重构，**无 backward compatibility 承诺**：
+1. **诚实表述**：SKILL 描述明示 "LLM supervision = main Claude Code session itself, zero external API"，删除 v5.x 时期 plugin.json description 中"3-5 路 Sonnet R1 + 1 路 Opus R2 路由"等实际未生效的 marketing 承诺
+2. **协议化 SKILL.md**：从决策树（v5.1 主对话现场领悟）改写为剧本（v6.0 主对话照步骤执行），Polish Protocol 7 步 + Coach Protocol 3 步 + Audit Protocol 2 步 + DOCX 桥接
+3. **三契约层** schemas/：scan-output / reviewer-output / eval-record JSON Schema，让 L1/L2/L3 间 I/O 形状机器可校验
+4. **scan-ai-taste.sh --json 真落地**：trap EXIT + Python heredoc 解析 stdout buffer，emit 符合 schema 的 JSON；同时加 `--target` 显式 flag + `--log-to` opt-in evolution-queue 日志
+5. **prompts/reviewer.md** spawn 模板：L3 clean-context Agent 触发条件 + 占位符模板 + 严格 JSON 输出 + timeout/missing-vote fail handling + 汇总 min(L2,L3) 保守裁判
+6. **任仲然继承度补齐**：覆盖率 65%→79%、深度 40%→55%，新增 `writing-coaching-arc.md`（L1§2 观察+L1§3 摹仿三段弧+L1§4 大胆写+L2§3 规律再造）+ `peer-vs-self-revision.md`（L12 改自己 vs 改他人辨证法）
+
+### Breaking Changes（无 backward compatibility，按 plan v2 §1.1 用户明确意图）
+
+- **删除** `scripts/{llm-judge-runner.py, model_adapter.py, self-refine-loop.py}` —— v5.x dev-only path，生产从未使用；保留至 v5.1 是误导
+- **删除** `scripts/scan-ai-taste.sh` 中 `--llm-judge` flag —— v4.3 至 v5.1 留 3 版 stub 已是破窗，v6 自身就是 LLM 监督，flag 多余
+- **删除** `prompts/multi-agent/` 整目录（包括 v5.1 的 `orchestration-guide.md`）—— 决策指南被 SKILL.md §2.2 Polish Protocol step 3 + `prompts/reviewer.md` 取代
+- **删除** `references/layer3-walkthrough.md` —— v5.1 历史叙事，protocol 已内联到 SKILL.md
+- **删除** `config/` 整目录（default.yaml + examples/gemini-gateway.yaml + qwen.yaml）—— YAGNI，v7 真有 BYOC 再加，零容忍 zombie code
+- **删除** `docs/rfc/{v5.0-llm-judge.md, v5.1-multi-agent-orchestrator.md}` —— RFC 已被 v6.0 实施超越
+- **scan-ai-taste.sh --json 输出格式 break change** —— v4.3 / v5.x 的 --json MODE 实际未实现（与 standard 行为相同），v6.0 真正输出符合 schema 的 JSON；外部调用方若依赖旧的 --json 文本输出会断（已 sweep 主要 callsite：cicpa 4.3.0 cached 路径 hard-coded 与本仓 v6 独立；sinnoh-kb 用占位符无需改）
+- **归档** v5.x evals tooling 到 `evals/legacy/v5.x/`：README.md / calibration-runner.sh / cohen-kappa.py / extract-from-cicpa-commits.py / evals.json / test-runner.sh / gold-standard/ / calibration-results-baseline-v50rc1/ / calibration-results/ —— 全部依赖已删 dev-only 脚本
+
+### Added
+
+- **`schemas/scan-output.schema.json`** + **`schemas/reviewer-output.schema.json`** + **`schemas/eval-record.schema.json`** —— 三层 I/O 契约，draft-07 JSON Schema，约束所有 LLM/script 间数据形状
+- **`prompts/reviewer.md`** —— L3 spawn 模板（150 行）：触发条件 / spawn 时机（单条消息内 3 Agent 并行）/ 占位符模板（{{DIMENSION_ID}}/{{DRAFT_TEXT}}/{{CONSTITUTION_SECTION}}）/ 严格 JSON 输出 / timeout 60s + JSON-malformed → missing-vote / 汇总 min(L2,L3)
+- **`references/writing-coaching-arc.md`** —— Coach mode 主路径（217 行）：观察 5 分钟日课 + 画道道笔记法 + 摹仿→制造→创造 三段弧 + 信心建设 + 规律再造
+- **`references/peer-vs-self-revision.md`** —— 改自己 vs 改他人辨证法（160 行）：冷读 24h + 距离感 3 技巧 + 不护短 + 自批 tone 对自己狠 + 他批先复述意图再外科手术 + L3 reviewer 必读 tone 自检表
+- **`scripts/scan-ai-taste.sh`** flags：`--target <path>`（显式 file，与 legacy positional arg 共存）+ `--log-to <jsonl-path>`（opt-in v6.1 evolution-queue 日志）+ `--json`（真输出符合 scan-output.schema.json）
+- **`evals/v6.0-baseline/comparison.md`** + 2 个 anchor 的 scan.json baseline —— v5.1 vs v6.0 process clarity / 任仲然继承度 对比 + release gate 决策
+
+### Changed
+
+- **SKILL.md** 90→212 行，从决策树重写为协议剧本：Prerequisites 前置声明 / Mode 路由 + 歧义解析 / 3 mode Protocols 步骤化 / D1-D5 mini-rubric 内联 / 红线 4 铁律速查 / 五权分立 + 单线程 writer 铁律 / Contracts 引用 / --log-to opt-in 说明 / load-when 路由表 / 输出格式固定 mini-bar
+- **plugin.json description** 改诚实版：明示 zero external API 范式 + 三 mode + 三层架构 + 红线清单
+- **marketplace.json** 同步：version 5.1.0→6.0.0 + description 与 plugin.json 一致
+- **references/anti-ai-taste-anchors.md** 顶部：automation-level=regex-auto + SSOT relationship + 删 docs/rfc 死链 + v5.0 范式预告改为 v6.0 落地说明
+- **references/constitution.md** 顶部：automation-level=claude-code-session-only + 与 SKILL.md §3 mini-rubric SSOT 关系 + load-when 说明
+- **references/revision-checklist.md** 顶部：load-when + 来源
+- **prompts/llm-judge-research-report.md** 顶部：v5.x 由 llm-judge-runner.py 加载 → v6.0 主对话 L3 spawn 时附加到 reviewer prompt
+
+### Quality gates
+
+- 6 个 fixtures 全部回归通过（drama-firewall / gov-duibiao / it-firewall / jargon-duibiao / long-form-density / short-form-density，context-aware whitelist 正确工作）
+- 5 项 scan-ai-taste.sh --json smoke test 全过：legacy positional / --target + --json pass / fail case 红线分类 / --log-to 写合法 JSON line / 基本 shape 校验
+- 任仲然继承度 65%→79%（覆盖率）/ 40%→55%（深度，5 个新增 deep 操作化原则）
+- 总分 delta 10 维度全部持平或提升（详 evals/v6.0-baseline/comparison.md §5）
+
+---
+
 ## [5.1.0] — 2026-05-27（晚间，v5.0.0 当日大刀阔斧重构）
 
 ### TL;DR

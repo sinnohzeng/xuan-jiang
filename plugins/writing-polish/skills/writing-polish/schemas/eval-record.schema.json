@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/sinnohzeng/xuan-jiang/blob/main/plugins/writing-polish/skills/writing-polish/schemas/eval-record.schema.json",
+  "title": "writing-polish single eval record (JSONL line)",
+  "description": "One line per polish/audit session in evals/*.jsonl; also the line format produced by scan-ai-taste.sh --log-to <path>.",
+  "type": "object",
+  "required": ["version", "timestamp", "draft_hash", "protocol", "mode", "scan_summary"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "6.0"
+    },
+    "model": {
+      "type": "string",
+      "description": "Main session model id at the time of run, e.g., claude-opus-4-7-1m or claude-sonnet-4-6"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC, e.g., 2026-05-28T10:23:00Z"
+    },
+    "draft_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
+    "protocol": {
+      "type": "string",
+      "enum": ["v5.1", "v6.0"],
+      "description": "Which polish protocol produced this record; used for v5-vs-v6 comparison"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["coach", "polish", "audit"]
+    },
+    "genre": {
+      "type": "string",
+      "enum": ["规范公文", "讲话稿", "调研报告", "述职报告", "汇报发言稿", "随笔杂文", "自媒体", "咨询报告", "其他"]
+    },
+    "scan_summary": {
+      "type": "object",
+      "description": "Inline summary block from scan-output.schema.json",
+      "required": ["red_line_violations_total", "soft_warnings_total"],
+      "additionalProperties": true
+    },
+    "l2_self_judge_scores": {
+      "type": "object",
+      "description": "Main-session inline self-judge result; absent for audit-only runs",
+      "properties": {
+        "D1": {"type": "integer", "minimum": 1, "maximum": 5},
+        "D2": {"type": "integer", "minimum": 1, "maximum": 5},
+        "D3": {"type": "integer", "minimum": 1, "maximum": 5},
+        "D4": {"type": "integer", "minimum": 1, "maximum": 5},
+        "D5": {"type": "integer", "minimum": 1, "maximum": 5}
+      }
+    },
+    "l3_reviewer_outputs": {
+      "type": "array",
+      "description": "Conforms to reviewer-output.schema.json; present when L3 multi-reviewer was spawned",
+      "items": {"$ref": "reviewer-output.schema.json"}
+    },
+    "final_action": {
+      "type": "string",
+      "enum": ["passed", "fixed", "rolled_back"]
+    },
+    "rules_not_covered_but_feels_off": {
+      "type": "array",
+      "description": "Aggregated from L2 self-judge + L3 reviewers; v6.1 evolution-queue input",
+      "items": {"type": "string"}
+    }
+  }
+}

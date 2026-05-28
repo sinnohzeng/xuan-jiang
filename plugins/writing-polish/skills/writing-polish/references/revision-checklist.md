@@ -1,5 +1,9 @@
 # 修改审校清单
 
+> **load-when**: Polish Protocol step 4 主对话修改 draft 阶段决策依据；遇到"该不该改"犹豫时查何其芳 12 项。
+> **automation-level**: `claude-code-session-only`（主对话读，不被脚本自动消费）
+> **来源**: 《怎样写作》第十二讲 + 何其芳修改文章经验
+
 基于《怎样写作》第十二讲及何其芳修改文章经验，整理的系统化审校清单。
 
 ## 目录

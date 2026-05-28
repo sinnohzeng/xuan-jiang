@@ -1,6 +1,8 @@
 # LLM Judge Prompt — 调研报告 / 咨询报告（research-report）5 维 Rubric
 
-> 本 prompt 由 `scripts/llm-judge-runner.py` 加载，组装成 system prompt 喂给 judge 模型（默认 claude-sonnet-4-6）。
+> **load-when**: Polish Protocol L3 spawn 阶段，体裁 = 调研报告 / 咨询报告时，附加到 [`reviewer.md`](./reviewer.md) 的 `{{CONSTITUTION_SECTION}}` 占位符（取代或补充 constitution.md 的通用 §D{X}）。
+> **automation-level**: `claude-code-session-only`（主对话调 Agent 时按 v6.0 spawn template 组装）。
+> **历史**: v5.x 由 `scripts/llm-judge-runner.py` 加载喂外部 API；v6.0 起改由主对话内联执行，无外部 API。
 >
 > 目标文体：**G3 调研报告** + **G8 第三方咨询报告**（cicpa 模板）。两者共用本 prompt，区别在 `{{genre_specific_constraints}}` 占位符注入的 §2.3 vs §2.8 切片。
 >

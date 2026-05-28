@@ -1,10 +1,13 @@
-# 去 AI 味约束清单（Anti-AI-Taste Rules）v4.3
+# 去 AI 味约束清单（Anti-AI-Taste Rules）v6.0
 
-> 156 红线 + 60 橙线 + 17 结构反模式 + v4.3 上下文感知白名单 + 千句密度动态阈值 + 5 条咨询报告专属约束 + 11 篇真实锚本。基于 2024-2026 年 Wikipedia / Originality.ai / GPTZero / 中文社区调研整理 + cicpa 实战治理沉淀，每条都有"为什么是 AI 味"的简短理由。
->
-> **v4.3 范式预告**：本版仍以硬正则匹配 + 上下文白名单为基础。v5.0 将引入 LLM-as-judge 混合架构，把硬规则解决不了的同形异义（防火墙 IT vs 隐喻、对标 党政 vs 大厂）、整体散文 AI 体、新型 AI 痕迹（"走深走实 / 向纵深推进"等 DeepSeek 改写产物）交给 Haiku 4.5 上下文判断，详见 [docs/rfc/v5.0-llm-judge.md](../../../../docs/rfc/v5.0-llm-judge.md)。
->
-> 相关文件：[ai-taste-examples.md](./ai-taste-examples.md) 反例对照、[failure-cases.md](./failure-cases.md) 历史失败案例、[citation-spec.md](./citation-spec.md) 模糊归因专题、[../scripts/scan-ai-taste.sh](../scripts/scan-ai-taste.sh) 自动校验脚本。
+> **automation-level**: `regex-auto`（scripts/scan-ai-taste.sh 字面执行 230+ 条）
+> **SSOT**: 字面 anchor 真值源；SKILL.md §4 红线速查是本文件 §0-§3 的 cached compact mirror，改前对照。
+> **load-when**: scan L1 fail 时主对话查规则细则；L2/L3 评分时遇到非字面违规但语感像 AI 时查 §1.5 结构级反模式。
+> **配套 LLM judge**: v6.0 把"同形异义、新词演化、整体散文 AI 体、粗颗粒度判定"等硬规则盲点交给主对话 L2 self-judge + L3 多 reviewer（参见 SKILL.md §2.2 + §3 D1-D5 mini-rubric + references/constitution.md 详细 rubric）。
+
+156 红线 + 60 橙线 + 17 结构反模式 + 上下文感知白名单 + 千句密度动态阈值 + 5 条咨询报告专属约束 + 11 篇真实锚本。基于 2024-2026 年 Wikipedia / Originality.ai / GPTZero / 中文社区调研整理 + cicpa 实战治理沉淀，每条都有"为什么是 AI 味"的简短理由。
+
+相关文件：[ai-taste-examples.md](./ai-taste-examples.md) 反例对照、[failure-cases.md](./failure-cases.md) 历史失败案例、[citation-spec.md](./citation-spec.md) 模糊归因专题、[../scripts/scan-ai-taste.sh](../scripts/scan-ai-taste.sh) 自动校验脚本。
 
 ## 目录
 
@@ -36,9 +39,7 @@ AI 味不是单点 bug，是**五层叠加**：
 4. **统计性思维替代语言思维**：人是先有想法再找词；AI 是预测下一个最可能的词，倾向最安全最高频
 5. **戏剧化偏好（v4.1 新增）**：AI 受互联网产品文案、游戏文案、自媒体爆款标题污染，倾向用动作化、战斗化、夸张化词汇制造冲击感（如"防御""闸门""装备""跑通""翻车""引擎""赋能""链路""装上"），但正式中文书面语应平实克制。这一层是最隐蔽的 AI 味，因为 AI 自己以为是在"写得有冲击力"，实际暴露了网感
 
-> **v5.0 范式预告**：v4.3 仍以硬正则匹配 + 上下文白名单为基础（fast path / 透明可审计 / < 1 秒）。但硬规则解决不了 6 类盲点：(1) 同形异义；(2) 新词演化（DeepSeek 改写出"走深走实 / 向纵深推进"）；(3) 整体散文 AI 体（句长方差合格但仍假大空）；(4) 粗颗粒度判定（整段 PASS / FAIL）；(5) 无 calibration（与人类金标准 correlation 不验）；(6) 同形近义变体逃逸（赋能 vs 赋予能力 / 增能 / 使能）。
->
-> v5.0 将引入 LLM-as-judge slow path（基于 Anthropic 2026-01「Demystifying evals」+ Openlayer 2026-03「LLM-as-judge Guide」），把 D3 / D4 / D5 三个模糊维度交给 Haiku 4.5 上下文判断，rubric 拆解为 5 个 dimension × 0-3 分 + Unknown 逃生舱，cicpa 053 治理前后段做人类金标准（correlation ≥ 0.85），每段 pass^3 多数票防 bias。详见 [docs/rfc/v5.0-llm-judge.md](../../../../docs/rfc/v5.0-llm-judge.md)。
+> **v6.0 落地**：硬规则解决不了的 6 类盲点（同形异义 / 新词演化 / 整体散文 AI 体 / 粗颗粒度判定 / 无 calibration / 同形近义变体逃逸）由主对话 L2 D1-D5 self-judge + L3 多 reviewer 接管。L1 regex 仍是 fast path（< 1 秒、透明可审计、零模型成本）；L2/L3 是 slow path，主对话调用方决定模型路由（参见 SKILL.md §2.2 Polish Protocol）。
 
 **真正"去 AI 味"的核心不是改词，是把表达从「标准答案」拉回「具体表达」**：
 

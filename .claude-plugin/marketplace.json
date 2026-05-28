@@ -10,9 +10,9 @@
     {
       "name": "writing-polish",
       "source": "./plugins/writing-polish/",
-      "description": "Professional writing assistance and revision. v5.1 大刀阔斧重构 L3 多智能体审校：单一 orchestration-guide.md 教主对话自主判断（1 路 Opus R2 + 3-5 路 Sonnet R1），对齐 Anthropic Multi-Agent System 2025-06 范式 + Cognition clean-context 2026-04 范式。三层 hybrid 不变：L1 硬 Gate scan + L2 主对话 inline LLM Judge + L3 multi-agent。SKILL.md 344→90 行（Anthropic Progressive Disclosure）。零外部 API。基于《怎样写作》方法论的中文写作辅助与审稿润色。",
-      "version": "5.1.0",
-      "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "context-aware", "consulting-report", "llm-as-judge", "multi-agent-review", "model-decoupled", "orchestrator-workers", "clean-context-subagent"],
+      "description": "Coaches, drafts, polishes, and audits Chinese documents based on 《怎样写作》(任仲然), using LLM supervision by the calling Claude Code session itself — zero external API. v6.0 三 mode (coach/polish/audit) + L1 regex gate (230+ rules) + L2 main-session D1-D5 self-judge (mini-rubric inline) + L3 optional clean-context multi-reviewer (prompts/reviewer.md template, JSON schemas/). Strictly enforces GB/T 15834 curly quotes, blocks 公文黑词 (赋能/重塑/闭环/抓手), 元注释 (作为一个 AI 助手), 戏剧化叙事 (三层防御/跑通/翻车). Genres: 公文/讲话稿/调研/述职/汇报/随笔杂文/自媒体/咨询.",
+      "version": "6.0.0",
+      "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "context-aware", "consulting-report", "main-session-llm-judge", "multi-agent-review", "clean-context-subagent", "zero-external-api", "json-schema-contracts"],
       "category": "writing"
     }
   ]

@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/sinnohzeng/xuan-jiang/blob/main/plugins/writing-polish/skills/writing-polish/schemas/scan-output.schema.json",
+  "title": "writing-polish scan-ai-taste.sh --json output",
+  "description": "Summary output of L1 hard gate. Main session reads this to decide L2/L3 routing.",
+  "type": "object",
+  "required": ["version", "file", "draft_hash", "exit_code", "summary", "stats", "human_readable_output"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "6.0",
+      "description": "Schema version, bumps on break change"
+    },
+    "file": {
+      "type": "string",
+      "description": "Absolute path of the scanned draft"
+    },
+    "draft_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$",
+      "description": "First 16 hex chars of sha256(draft content); identifies draft across runs"
+    },
+    "exit_code": {
+      "type": "integer",
+      "enum": [0, 1, 2, 3],
+      "description": "0=red-line pass, 1=red-line fail, 2=soft warning only, 3=usage error"
+    },
+    "summary": {
+      "type": "object",
+      "required": ["red_line_violations_total", "soft_warnings_total", "categories"],
+      "additionalProperties": false,
+      "properties": {
+        "red_line_violations_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "soft_warnings_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "categories": {
+          "type": "array",
+          "description": "Only categories with at least one violation are listed",
+          "items": {
+            "type": "object",
+            "required": ["name", "red", "soft"],
+            "additionalProperties": false,
+            "properties": {
+              "name": {"type": "string"},
+              "red": {"type": "integer", "minimum": 0},
+              "soft": {"type": "integer", "minimum": 0}
+            }
+          }
+        }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": ["char_count", "sentence_count", "paragraph_count"],
+      "additionalProperties": false,
+      "properties": {
+        "char_count": {"type": "integer", "minimum": 0},
+        "sentence_count": {"type": "integer", "minimum": 0},
+        "paragraph_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "human_readable_output": {
+      "type": "string",
+      "description": "Full stdout of the standard-mode scan, for cases when main session wants detail beyond the summary"
+    }
+  }
+}

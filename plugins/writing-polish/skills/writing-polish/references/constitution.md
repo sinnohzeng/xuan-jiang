@@ -1,10 +1,12 @@
-# xuan-jiang Constitution v5.0（按文体切片的 LLM Judge 成文宪法）
+# xuan-jiang Constitution v6.0（按文体切片的 LLM Judge 成文宪法）
 
-> v4.3 anti-ai-taste-anchors.md 是给 `scan-ai-taste.sh` 看的**字面 anchor SSOT**（230+ 条逐字红线）。本文件是给 **LLM Judge** 看的**场景化判例 SSOT**——同一批红线按文体切片、嵌入例外清单与 1-2 句 anchor 改写示例，让 judge prompt 只引用与当前文体相关的切片，缩短 token、提升 precision。
+> **automation-level**: `claude-code-session-only`（主对话 L2 self-judge 读本文件；不被脚本自动消费）
+> **SSOT 关系**: SKILL.md §3 D1-D5 mini-rubric 是本文件的 compact mirror（cached subset）；改 mini-rubric 时必须先对照本文件 D1-D5 详细评分细则。
+> **load-when**: Polish Protocol step 2 主对话 L2 self-judge 不确信某维 → 读对应 §D{X} 详细 rubric 补足；L3 reviewer 必读自己分到的那一维 §D{X}。
+>
+> anti-ai-taste-anchors.md 是给 `scan-ai-taste.sh` 看的**字面 anchor SSOT**（230+ 条逐字红线）。本文件是给主对话 / clean-context reviewer 看的**场景化判例 SSOT**——同一批红线按文体切片、嵌入例外清单与 1-2 句 anchor 改写示例，让主对话只引用与当前文体相关的切片，缩短 token、提升 precision。
 >
 > 两份文件通过红线 ID（如 §1.4.111、§1.5.1）双向交叉引用，不重复全文。
->
-> **使用方式**：`prompts/llm-judge-<genre>.md` 加载本文件对应章节 + 通用红线 + 例外清单，组装成最终 system prompt。
 
 ---
 

@@ -1,7 +1,7 @@
 {
   "name": "writing-polish",
-  "version": "5.1.0",
-  "description": "Professional Chinese writing skill based on 《怎样写作》(任仲然) methodology with 230+ anti-AI-taste rules. v5.1 大刀阔斧重构 Layer 3 多智能体审校：从 placeholder 模板砍成单一 orchestration-guide.md 判断指南（主对话自主判断派 1 路 Opus R2/Pre-mod + 3-5 路 Sonnet R1，对齐 Anthropic Multi-Agent System 2025-06 范式）；扩 D5/D4 few-shot 8 例从 v5.0 calibration disagreement 反例直接落地；SKILL.md 344→90 行（Anthropic Progressive Disclosure）。三层 hybrid 不变：L1 硬 Gate（scan-hard-gate.sh + scan-ai-taste.sh）+ L2 LLM Judge（主对话 inline，零外部 API）+ L3 多智能体审校（clean-context subagent）。模型解耦原则保留，所有 reviewer 默认 Sonnet 4.6 1M / Opus 4.7 1M（2026-05-27 firecrawl 实测 Anthropic docs verified）。基于专业方法论的中文写作辅助与审稿润色。",
+  "version": "6.0.0",
+  "description": "Coaches, drafts, polishes, and audits Chinese documents based on 《怎样写作》(任仲然), using LLM supervision by the calling Claude Code session itself — zero external API calls. Three modes: coach (帮我写/起草/拟稿/搭提纲, multi-turn), polish (润色/审稿/改稿, default for ambiguous triggers like 帮我看看), audit (快速过/checkpoint, script-only). Three-layer architecture: L1 regex hard gate via scripts/scan-ai-taste.sh enforcing 230+ rules from anti-ai-taste-anchors.md; L2 main-session D1-D5 self-judge using mini-rubric inline in SKILL.md (detailed in references/constitution.md); L3 optional clean-context multi-reviewer spawned by main-session Agent() when draft > 2000 chars or genre ∈ {公文,调研,述职} or L2 any-dim < 3, template in prompts/reviewer.md. Strictly enforces: GB/T 15834 curly quotes (bans ASCII straight quotes + em-dashes), 公文黑词清单 (赋能/重塑/闭环/抓手), 元注释黑名单 (作为一个 AI 助手), 戏剧化叙事黑名单 (三层防御/跑通/翻车). Genres: 公文/讲话稿/调研报告/述职报告/汇报发言稿/随笔杂文/自媒体. Triggers: 润色, 审稿, 改稿, 帮我写, 帮我起草, 搭个提纲, 起草, 拟稿, 审一审, 改一改, polish this, review my writing, help me write, draft this, write an outline, proofread, DOCX 修订, 修改 Word 文档. Does NOT trigger for: translation, code review, data analysis, English-only writing.",
   "author": {
     "name": "sinnohzeng"
   },

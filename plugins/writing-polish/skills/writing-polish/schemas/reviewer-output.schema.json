@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/sinnohzeng/xuan-jiang/blob/main/plugins/writing-polish/skills/writing-polish/schemas/reviewer-output.schema.json",
+  "title": "writing-polish L3 reviewer Agent output",
+  "description": "Strict JSON shape returned by a clean-context reviewer spawned per prompts/reviewer.md.",
+  "type": "object",
+  "required": ["dimension", "score", "rationale", "top_issues", "top_fixes"],
+  "additionalProperties": false,
+  "properties": {
+    "dimension": {
+      "type": "string",
+      "enum": ["D1", "D2", "D3", "D4", "D5"],
+      "description": "Which single dimension this reviewer evaluated"
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "1=系统性违规 ... 5=无瑕"
+    },
+    "rationale": {
+      "type": "string",
+      "maxLength": 600,
+      "description": "Why this score; ≤300 Chinese chars (≈600 byte)"
+    },
+    "top_issues": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 3,
+      "items": {"type": "string", "maxLength": 200}
+    },
+    "top_fixes": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 3,
+      "items": {"type": "string", "maxLength": 200}
+    },
+    "rules_not_covered_but_feels_off": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 3,
+      "description": "v6.1 evolution-queue seed: reviewer reads as AI-flavored but no rule in anti-ai-taste-anchors.md matched",
+      "items": {"type": "string", "maxLength": 200}
+    }
+  }
+}
