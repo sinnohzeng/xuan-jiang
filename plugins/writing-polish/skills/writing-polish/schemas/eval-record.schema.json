@@ -9,7 +9,7 @@
   "properties": {
     "version": {
       "type": "string",
-      "const": "6.0"
+      "enum": ["6.0", "6.1"]
     },
     "model": {
       "type": "string",
@@ -26,8 +26,8 @@
     },
     "protocol": {
       "type": "string",
-      "enum": ["v5.1", "v6.0"],
-      "description": "Which polish protocol produced this record; used for v5-vs-v6 comparison"
+      "enum": ["v5.1", "v6.0", "v6.1"],
+      "description": "Which polish protocol produced this record; used for cross-version comparison. v6.1 = 0-3 scale + L3 mandatory + L2 trace-file留痕"
     },
     "mode": {
       "type": "string",
@@ -45,13 +45,13 @@
     },
     "l2_self_judge_scores": {
       "type": "object",
-      "description": "Main-session inline self-judge result; absent for audit-only runs",
+      "description": "Main-session self-judge result (v6.1+: read from .writing-polish-trace/*.json); absent for audit-only runs or when L2 abstained (then L3 fallback ran instead)",
       "properties": {
-        "D1": {"type": "integer", "minimum": 1, "maximum": 5},
-        "D2": {"type": "integer", "minimum": 1, "maximum": 5},
-        "D3": {"type": "integer", "minimum": 1, "maximum": 5},
-        "D4": {"type": "integer", "minimum": 1, "maximum": 5},
-        "D5": {"type": "integer", "minimum": 1, "maximum": 5}
+        "D1": {"oneOf": [{"type": "integer", "minimum": 0, "maximum": 3}, {"const": "unknown"}]},
+        "D2": {"oneOf": [{"type": "integer", "minimum": 0, "maximum": 3}, {"const": "unknown"}]},
+        "D3": {"oneOf": [{"type": "integer", "minimum": 0, "maximum": 3}, {"const": "unknown"}]},
+        "D4": {"oneOf": [{"type": "integer", "minimum": 0, "maximum": 3}, {"const": "unknown"}]},
+        "D5": {"oneOf": [{"type": "integer", "minimum": 0, "maximum": 3}, {"const": "unknown"}]}
       }
     },
     "l3_reviewer_outputs": {

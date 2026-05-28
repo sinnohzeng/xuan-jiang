@@ -1,12 +1,12 @@
 {
   "name": "writing-polish",
-  "version": "6.0.0",
-  "description": "Coaches, drafts, polishes, and audits Chinese documents based on 《怎样写作》(任仲然), using LLM supervision by the calling Claude Code session itself — zero external API calls. Three modes: coach (帮我写/起草/拟稿/搭提纲, multi-turn), polish (润色/审稿/改稿, default for ambiguous triggers like 帮我看看), audit (快速过/checkpoint, script-only). Three-layer architecture: L1 regex hard gate via scripts/scan-ai-taste.sh enforcing 230+ rules from anti-ai-taste-anchors.md; L2 main-session D1-D5 self-judge using mini-rubric inline in SKILL.md (detailed in references/constitution.md); L3 optional clean-context multi-reviewer spawned by main-session Agent() when draft > 2000 chars or genre ∈ {公文,调研,述职} or L2 any-dim < 3, template in prompts/reviewer.md. Strictly enforces: GB/T 15834 curly quotes (bans ASCII straight quotes + em-dashes), 公文黑词清单 (赋能/重塑/闭环/抓手), 元注释黑名单 (作为一个 AI 助手), 戏剧化叙事黑名单 (三层防御/跑通/翻车). Genres: 公文/讲话稿/调研报告/述职报告/汇报发言稿/随笔杂文/自媒体. Triggers: 润色, 审稿, 改稿, 帮我写, 帮我起草, 搭个提纲, 起草, 拟稿, 审一审, 改一改, polish this, review my writing, help me write, draft this, write an outline, proofread, DOCX 修订, 修改 Word 文档. Does NOT trigger for: translation, code review, data analysis, English-only writing.",
+  "version": "6.1.0",
+  "description": "Coaches, drafts, polishes, and audits Chinese documents based on 《怎样写作》(任仲然). v6.1: Evaluator-Optimizer 范式 (clean-context reviewer 默认必跑兜底); 0-3 scoring scale + Unknown 逃生舱; L2 self-judge 文件留痕兜底; anchor/eval 物理隔离防 Grader Gaming. Modes: coach / polish / audit.",
   "author": {
     "name": "sinnohzeng"
   },
   "repository": "https://github.com/sinnohzeng/xuan-jiang",
   "license": "MIT",
-  "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "renzhongran", "context-aware", "consulting-report", "llm-as-judge", "multi-agent-review", "model-decoupled", "hybrid", "orchestrator-workers", "clean-context-subagent"],
+  "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "renzhongran", "context-aware", "consulting-report", "llm-as-judge", "multi-agent-review", "clean-context-subagent", "evaluator-optimizer", "few-shot-anchor"],
   "skills": "./skills/"
 }

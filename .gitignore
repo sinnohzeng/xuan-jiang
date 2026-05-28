@@ -28,6 +28,12 @@ venv/
 unpacked/
 *.tmp
 
+# writing-polish v6.1 L2 self-judge trace files (not version-controlled)
+.writing-polish-trace/
+
+# writing-polish v6.1 polish backup files (cp <draft>.polish-backup-<ts>.md)
+*.polish-backup-*.md
+
 # OS generated
 Thumbs.db
 ehthumbs.db

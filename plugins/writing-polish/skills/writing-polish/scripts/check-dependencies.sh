@@ -1,14 +1,70 @@
 #!/usr/bin/env bash
-# check-dependencies.sh —— writing-polish v4.2 依赖检查
+# check-dependencies.sh —— writing-polish v6.1 依赖检查 + 单向依赖自检
 #
-# 触发 SKILL 前可选预检：pandoc / Python / docx-editor 是否齐备。
+# 默认行为：触发 SKILL 前预检 pandoc / Python / docx-editor 是否齐备。
 # 缺什么给什么命令，不让用户卡在"为什么 pandoc 找不到"上。
 #
-# 用法：bash check-dependencies.sh
-# 退出码：
+# 子命令：
+#   bash check-dependencies.sh                  默认依赖检查
+#   bash check-dependencies.sh --check-cycles   v6.1 新增：单向依赖自检（references/ 反引 SKILL.md → 报警）
+#
+# 退出码（默认模式）：
 #   0  全部齐备
 #   1  有缺失依赖（基础功能受限）
 #   2  有缺失依赖（DOCX 功能受限）
+#
+# 退出码（--check-cycles 模式）：
+#   0  零循环依赖
+#   3  发现反向引用
+
+if [[ "${1:-}" == "--check-cycles" ]]; then
+    set -uo pipefail
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    SKILL_ROOT="$SCRIPT_DIR/.."
+    VIOLATIONS=0
+
+    # 只检测**执行性**反向引用，prose 提及 SKILL.md 作 progressive disclosure 注释是合规的。
+    # 执行性 = markdown 链接 [X](../SKILL.md) 或 bash source/exec SKILL.md。
+    echo "▼ 单向依赖自检 v6.1（依赖方向 SKILL.md → { prompts/, references/, scripts/, assets/ }）"
+    echo
+
+    echo "  ▼ references/ 不应有 markdown 链接指回 SKILL.md"
+    while IFS= read -r -d '' f; do
+        if grep -nE '\]\(\.\./SKILL\.md' "$f" >/dev/null 2>&1; then
+            echo "    ✗ $f"
+            grep -nE '\]\(\.\./SKILL\.md' "$f" | head -2 | sed 's/^/        /'
+            VIOLATIONS=$((VIOLATIONS + 1))
+        fi
+    done < <(find "$SKILL_ROOT/references" -name "*.md" -print0 2>/dev/null)
+
+    echo "  ▼ prompts/ 不应有 markdown 链接指回 SKILL.md"
+    while IFS= read -r -d '' f; do
+        if grep -nE '\]\(\.\./SKILL\.md' "$f" >/dev/null 2>&1; then
+            echo "    ✗ $f"
+            grep -nE '\]\(\.\./SKILL\.md' "$f" | head -2 | sed 's/^/        /'
+            VIOLATIONS=$((VIOLATIONS + 1))
+        fi
+    done < <(find "$SKILL_ROOT/prompts" -name "*.md" -print0 2>/dev/null)
+
+    echo "  ▼ scripts/ 不应 source/bash/exec SKILL.md（自身脚本除外）"
+    while IFS= read -r -d '' f; do
+        # 跳过本脚本（pattern 自身会 self-match）
+        [[ "$(basename "$f")" == "check-dependencies.sh" ]] && continue
+        if grep -nE '^[^#]*\b(source|bash|exec)\b[[:space:]]+[^#]*SKILL\.md' "$f" >/dev/null 2>&1; then
+            echo "    ✗ $f"
+            VIOLATIONS=$((VIOLATIONS + 1))
+        fi
+    done < <(find "$SKILL_ROOT/scripts" -type f \( -name "*.sh" -o -name "*.py" \) -print0 2>/dev/null)
+
+    echo
+    if [[ $VIOLATIONS -eq 0 ]]; then
+        echo "✅ 零循环依赖"
+        exit 0
+    else
+        echo "✗ 发现 $VIOLATIONS 处执行性反向引用"
+        exit 3
+    fi
+fi
 
 set -uo pipefail
 

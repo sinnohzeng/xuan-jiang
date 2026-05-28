@@ -2,6 +2,49 @@
 
 All notable changes to xuan-jiang `writing-polish` skill are documented here. Format follows [Keep a Changelog 1.1](https://keepachangelog.com/en/1.1.0/), versioning follows [Semver 2.0](https://semver.org/).
 
+## [6.1.0] — 2026-05-28（评分链可验证化：量纲统一 + L3 默认必跑 + few-shot anchor + L2 留痕）
+
+### ⚠️ Breaking
+
+- **评分量纲翻转**：1-5（5=最好）→ **0-3 + `"unknown"`**（3=最差）。汇总从 `min()` 反转为 `max()`（任一审稿人认为更差就以更差为准——保守裁判语义不变）。仅影响 `schemas/*.schema.json` 与 `SKILL.md` 文档；evals/calibration-set.jsonl 本就是 0-3 + unknown，无需迁移。
+- **Rollback**：如需回到 v6.0 量纲，`git checkout release/v6.0-frozen`（已打 tag 锚定）。
+- **frontmatter 收敛**：删除 `effort: max` + 非标 `paths` 字段；description 从 600 字收敛到 ≤ 80 中文字 + 触发词清单。
+- **prompts/reviewer.md 输出格式 break**：reviewer 返回 JSON 新增必填 `source` 字段（`L2-self` / `L3-reviewer-clean` / `L3-spot-check`）。
+- **anchor/eval 物理隔离铁律**：`evals/anchor-set.jsonl` 供 reviewer few-shot 注入；`evals/eval-set.jsonl` 供 κ / regression 测试。**禁止把 eval-set 注入 prompt**（防 Grader Gaming）。
+
+### Added
+
+- `scripts/split-calibration.sh`：一次性把 `calibration-set.jsonl` 按 `verified` 字段拆成 anchor-set / eval-set 两视图（不动原文件内容）
+- `scripts/select-fewshot.sh`：deterministic（sha256(draft) 做 seed）+ 易难分层 + 同 commit 排除，供 reviewer prompt 拼 §4 few-shot anchor
+- `prompts/spot-check.md`：step 5 用的轻量 reviewer（≤ 正式 reviewer 50% 字符），只评 D5
+- `references/reviewer-routing.md`：mode × 体裁 × 长度 → reviewer 列表 decision table
+- `references/resource-routing.md`：从 SKILL.md §5 外迁的详细资源路由表（progressive disclosure）
+- `evals/README.md`：anchor / eval 物理隔离铁律 + 禁止 eval 注入 prompt 说明
+- `.gitignore`：加 `.writing-polish-trace/`（L2 自评 trace 文件目录，默认不入版本控制）
+
+### Changed
+
+- **SKILL.md** frontmatter：description ≤ 80 中文字、删 effort:max、删 paths、加 `allowed-tools: Bash, Read, Edit, Write, Agent`
+- **SKILL.md §0** 新增"Skill 速览"段（架构 3 行说清）
+- **SKILL.md §1.2** 触发歧义解析：基于 draft 字数给推荐 + 给理由
+- **SKILL.md §2.2 step 2**：L2 self-judge 必须 Write trace 文件到 `.writing-polish-trace/`，**未写文件 = L2 弃权 = 强制 L3 全维度兜底**
+- **SKILL.md §2.2 step 3**：L3 触发改为"Polish mode 默认强制至少 1 reviewer（D5 spot-check）"；升级到 3 reviewer 的条件不变；分摊矩阵外迁 reviewer-routing.md
+- **SKILL.md §2.2 step 5**：验证从"重跑 L1 + L2 自评"改为"重跑 L1 + spawn clean-context spot-check Agent"
+- **SKILL.md §5** 资源路由表瘦身到 ≤ 10 行，详细路由外迁 resource-routing.md
+- **SKILL.md §6** mini-bar 从 ASCII 满格条改为状态符号 `✓ ⚠ ✗ ?`（0-3 反直觉缓解）
+- **schemas/reviewer-output.schema.json**：score 改 `oneOf: [integer 0-3, const "unknown"]`；新增必填 `source` 枚举
+- **schemas/eval-record.schema.json**：L2 score 改 0-3 + unknown；`version` const 改 "6.1"；`protocol` 枚举加 "v6.1"
+- **prompts/reviewer.md**：新增 §4 few-shot anchor 占位符 + 反作弊提示；retry 1 次（exponential backoff 2s）；spawn 进度行约定
+- **prompts/llm-judge-research-report.md**：rubric 表头 + few-shot examples 量纲对齐 0-3（本身已是 0-3，仅检查一致性）
+- **scripts/check-dependencies.sh**：新增循环依赖检查段（扫 references/ 反引 SKILL.md mode 关键词）
+
+### Quality gates
+
+- `bash scripts/check-dependencies.sh` 报 0 循环依赖
+- `grep -rE "(1-5|0-5|min\()" plugins/writing-polish/{SKILL.md,schemas/,prompts/}` 应零命中
+- 6 个 fixtures `bash scripts/scan-ai-taste.sh --target` 全过（量纲翻转不影响 L1 regex 层）
+- description ≤ 200 byte；yaml frontmatter lint 过
+
 ## [6.0.0] — 2026-05-28（无历史包袱重构：协议化 SKILL + LLM 监督真落地 + 任仲然继承度补齐）
 
 ### TL;DR
