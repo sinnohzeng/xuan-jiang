@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# scan-ai-taste.sh —— writing-polish v6.0 L1 hard gate
+# scan-ai-taste.sh —— writing-polish v7.0 L1 hard gate
 #
-# v6.0 角色：交付前 AI 味自检 + JSON 输出供主对话 (L2/L3) 路由决策。
+# 角色：交付前 AI 味自检（L1 硬扫）+ JSON 输出供主对话 / writing-reviewer 路由决策。
 # 在交付任何修改稿前必跑。任何硬约束未达标，禁止交付。
 #
 # 用法：
@@ -9,7 +9,7 @@
 #   bash scan-ai-taste.sh --target <file.md>                       # 同上（显式 flag）
 #   bash scan-ai-taste.sh --target <file.md> --suggest-fix         # 含改写建议
 #   bash scan-ai-taste.sh --target <file.md> --json                # JSON 输出（主对话消费）
-#   bash scan-ai-taste.sh --target <file.md> --log-to <jsonl-path> # opt-in v6.1 evolution-queue 日志
+#   bash scan-ai-taste.sh --target <file.md> --log-to <jsonl-path> # opt-in 离线 eval 日志（供 evals/offline-harness/ 消费）
 #   bash scan-ai-taste.sh --target <file.md> --json --log-to <p>   # 二者可叠加
 #
 # 退出码：
@@ -19,7 +19,7 @@
 #   3  使用错误（缺参数 / 文件不存在）
 #
 # JSON 契约：schemas/scan-output.schema.json
-# 日志契约：schemas/eval-record.schema.json
+# 日志契约：evals/offline-harness/eval-record.schema.json（离线 dev-eval）
 # 规则定义：references/anti-ai-taste-anchors.md（230+ 条 SSOT，编号一一对应）
 
 set -uo pipefail
@@ -51,7 +51,7 @@ if [ ! -f "$FILE" ]; then
     exit 3
 fi
 
-# v6.0: capture stdout into a buffer when JSON mode or --log-to is set.
+# capture stdout into a buffer when JSON mode or --log-to is set.
 # emit_results_on_exit (trap EXIT) parses the buffer and emits JSON / appends log line.
 if [ "$MODE" = "json" ] || [ -n "$LOG_TO" ]; then
     JSON_BUF=$(mktemp)
@@ -107,7 +107,7 @@ draft_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
 
 if mode == 'json':
     result = {
-        "version": "6.0",
+        "version": "7.0",
         "file": os.path.abspath(file_path),
         "draft_hash": draft_hash,
         "exit_code": exit_code,
@@ -131,10 +131,10 @@ if log_to:
         os.makedirs(log_dir, exist_ok=True)
     final_action = "passed" if exit_code == 0 else ("fixed" if exit_code == 2 else "rolled_back")
     log_entry = {
-        "version": "6.0",
+        "version": "7.0",
         "timestamp": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         "draft_hash": draft_hash,
-        "protocol": "v6.0",
+        "protocol": "v7.0",
         "mode": "audit",
         "scan_summary": {
             "red_line_violations_total": red_total,
@@ -737,7 +737,7 @@ else
     printf "${RED}✗ FAIL — 有 %d 项硬红线违规，禁止交付${NC}\n" "$VIOLATIONS"
     echo
     if [ "$MODE" != "suggest" ]; then
-        echo "提示：加 --suggest-fix 获取改写建议；或运行 bash scripts/auto-fix-loop.sh \"\$FILE\" 自动尝试 1 至 2 轮修复"
+        echo "提示：加 --suggest-fix 获取改写建议"
     fi
     echo "下一步：重写违规处，再次运行本脚本，直至全部通过"
     exit 1

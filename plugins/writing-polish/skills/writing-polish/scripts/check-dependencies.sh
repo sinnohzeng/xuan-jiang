@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-dependencies.sh —— writing-polish v6.1 依赖检查 + 单向依赖自检
+# check-dependencies.sh —— writing-polish v7.0 依赖检查 + 单向依赖自检
 #
 # 默认行为：触发 SKILL 前预检 pandoc / Python / docx-editor 是否齐备。
 # 缺什么给什么命令，不让用户卡在"为什么 pandoc 找不到"上。
@@ -25,7 +25,7 @@ if [[ "${1:-}" == "--check-cycles" ]]; then
 
     # 只检测**执行性**反向引用，prose 提及 SKILL.md 作 progressive disclosure 注释是合规的。
     # 执行性 = markdown 链接 [X](../SKILL.md) 或 bash source/exec SKILL.md。
-    echo "▼ 单向依赖自检 v6.1（依赖方向 SKILL.md → { prompts/, references/, scripts/, assets/ }）"
+    echo "▼ 单向依赖自检 v7.0（依赖方向 SKILL.md → { references/, scripts/, assets/ }；agents/ 由主对话经 Task 调用）"
     echo
 
     echo "  ▼ references/ 不应有 markdown 链接指回 SKILL.md"
@@ -36,15 +36,6 @@ if [[ "${1:-}" == "--check-cycles" ]]; then
             VIOLATIONS=$((VIOLATIONS + 1))
         fi
     done < <(find "$SKILL_ROOT/references" -name "*.md" -print0 2>/dev/null)
-
-    echo "  ▼ prompts/ 不应有 markdown 链接指回 SKILL.md"
-    while IFS= read -r -d '' f; do
-        if grep -nE '\]\(\.\./SKILL\.md' "$f" >/dev/null 2>&1; then
-            echo "    ✗ $f"
-            grep -nE '\]\(\.\./SKILL\.md' "$f" | head -2 | sed 's/^/        /'
-            VIOLATIONS=$((VIOLATIONS + 1))
-        fi
-    done < <(find "$SKILL_ROOT/prompts" -name "*.md" -print0 2>/dev/null)
 
     echo "  ▼ scripts/ 不应 source/bash/exec SKILL.md（自身脚本除外）"
     while IFS= read -r -d '' f; do
@@ -78,7 +69,7 @@ MISSING_CORE=0
 MISSING_DOCX=0
 
 echo "================================================"
-echo "  writing-polish v4.2 依赖检查"
+echo "  writing-polish v7.0 依赖检查"
 echo "================================================"
 echo
 

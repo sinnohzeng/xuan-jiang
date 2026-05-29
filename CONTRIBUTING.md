@@ -17,51 +17,41 @@ Thank you for your interest in Xuan-Jiang! This guide explains how to contribute
 
 ## Skill 编写规范 Skill Authoring Guidelines
 
-贡献新 Skill 时，请遵循以下规范（对标 [Anthropic 官方最佳实践](https://docs.anthropic.com/en/docs/claude-code/skills)）：
+贡献新 Skill 时，请遵循以下规范（对标 [Anthropic Agent Skills 最佳实践](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)，2026-05 口径）：
 
-### `description` 字段
+### frontmatter 字段
 
-- 使用**第三人称**：`"Commits and pushes staged changes..."` 而非 `"Use when you want to commit..."`
-- 前 250 字符必须包含所有核心触发词（技能列表展示时会截断）
-- 上限 1024 字符，建议控制在 800 以内
-- 中文项目：末尾追加中文短触发词以提高自动触发匹配率
+官方 agent-skills frontmatter 只有三个核心字段：`name`、`description`、`allowed-tools`。不要再写 `effort` / `paths`（非官方字段，旧版项目约定已废）。
+
+- **`name`**：小写 + 数字 + 连字符，≤ 64 字符，gerund 式具体命名（如 `writing-polish`）。
+- **`description`**：≤ 1024 字符，**第三人称**，含 what + when + 触发词；中文项目末尾追加中文短触发词。
+- **`allowed-tools`**：显式列出该 skill 可用工具（如 `Bash, Read, Edit, Write, Task`）。
 
 ```yaml
 # 正确 ✅
 description: >
-  Commits and pushes staged changes with Chinese Conventional Commits.
-  提交代码并推送到远端。
+  Coaches, drafts, polishes, and audits Chinese documents using 《怎样写作》.
+  Triggers on 润色 / 审稿 / 改稿 / 帮我写 / polish / review.
 
 # 错误 ❌
-description: >
-  Use this when you want to commit your code.
+description: Use this when you want to polish your text.   # 第二人称
 ```
 
-### `effort` 字段
+### 子代理 Subagents
 
-每个技能必须显式设置，不依赖默认值：
-
-| effort | 适用场景 |
-|--------|---------|
-| `max` | 运行测试、迭代调试、复杂分析 |
-| `high` | 多文件扫描 |
-| `medium` | 反思类、分析类 |
-| `low` | 纯流程化操作、别名委派 |
+可复用的 clean-context worker（如审稿人）定义为插件 `agents/*.md`，frontmatter 含 `name` / `description` / `tools`（只读 worker 给 `Read, Bash, Grep` 即可，结构性强制「只评不改」）。主对话用 Task 工具调用。
 
 ### 拼音别名 Pinyin Aliases
 
-- 使用完整拼音（`tijiao`），不用首字母缩写（`tj`）
-- 设置 `disable-model-invocation: true`（别名不应被 AI 自动触发）
-- Body 用委派模式，不复制主技能内容：
+- 使用完整拼音（`runse`），不用首字母缩写（`rs`）。
+- 设置 `disable-model-invocation: true`（别名不应被 AI 自动触发）。
+- Body 用委派模式，不复制主技能内容。
 
-```markdown
-请调用 /workflow-toolkit:commit skill 来完成提交。
-```
+### 精简纪律
 
-### 其他字段
-
-- **`paths`** — 文件类型相关的技能应限定激活范围（如 `"**/*.docx, **/*.md"`）
-- **动态上下文** — 有 git 操作的技能应注入 `!git status` 等命令
+- SKILL.md body 远低于 500 行（轩匠目标 ~150）；长材料按需载入 `references/`。
+- `references/` 单层引用；> 100 行的 reference 顶部加目录（TOC）。
+- 先建评测后写文档（evaluation-driven）；评测在 `evals/`，不进 per-use 路径。
 
 ---
 
@@ -102,11 +92,12 @@ docs: 补充跨平台安装说明
 
 ---
 
-## 中文标点规范
+## 中文标点规范（GB/T 15834-2011）
 
-- 中文字符之间使用中文标点（，。；：""）
-- 严禁在中文之间使用英文直引号 `""`
-- 中文双引号使用 `"xxx"` 或 `「xxx」`
+- 中文字符之间使用中文标点（，。；：）。
+- 中文双引号**必须**用大陆国标弯引号 `"xxx"`（U+201C/U+201D），双层嵌套外双内单 `"x'y'z"`。
+- **严禁** ASCII 直引号 `"xxx"`，**也严禁**直角引号 `「」` `『』`（港台/日式，大陆党政公文不用）——这正是本插件 `scan-ai-taste.sh` 会扫的红线。
+- 唯一例外：代码块、URL、命令行、纯英文术语保留 ASCII。
 
 ---
 

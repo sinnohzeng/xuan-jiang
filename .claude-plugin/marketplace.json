@@ -10,9 +10,9 @@
     {
       "name": "writing-polish",
       "source": "./plugins/writing-polish/",
-      "description": "Coaches, drafts, polishes, and audits Chinese documents based on 《怎样写作》(任仲然). v6.1: Evaluator-Optimizer 范式 (clean-context reviewer 默认必跑兜底); 0-3 scoring scale + Unknown 逃生舱; L2 self-judge 文件留痕兜底; anchor/eval 物理隔离防 Grader Gaming. Modes: coach / polish / audit. Strictly enforces GB/T 15834 curly quotes, blocks 公文黑词 (赋能/重塑/闭环/抓手), 元注释 (作为一个 AI 助手), 戏剧化叙事 (三层防御/跑通/翻车). Genres: 公文/讲话稿/调研/述职/汇报/随笔杂文/自媒体/咨询.",
-      "version": "6.1.0",
-      "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "context-aware", "consulting-report", "evaluator-optimizer", "multi-agent-review", "clean-context-subagent", "few-shot-anchor", "json-schema-contracts"],
+      "description": "Coaches, drafts, polishes, and audits Chinese documents based on 《怎样写作》(任仲然). v7.0 两世界拆分: per-use 改稿走 clean-context writing-reviewer 子代理返回自然语言反馈 + 粗判 (够好了/要改/红线未清), 数值逐维评分下沉 evals/offline-harness/ 离线 dev-eval. 审查四焦点: 立意 / 结构与论据 / 材料·事实 / AI味·标点. Modes: coach / polish / audit. Strictly enforces GB/T 15834 curly quotes, blocks 公文黑词 (赋能/重塑/闭环/抓手), 元注释 (作为一个 AI 助手), 戏剧化叙事 (三层防御/跑通/翻车). Genres: 公文/讲话稿/调研/述职/汇报/随笔杂文/自媒体/咨询.",
+      "version": "7.0.0",
+      "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "context-aware", "consulting-report", "multi-agent-review", "clean-context-subagent", "writing-reviewer-subagent", "natural-language-feedback", "offline-dev-eval"],
       "category": "writing"
     }
   ]

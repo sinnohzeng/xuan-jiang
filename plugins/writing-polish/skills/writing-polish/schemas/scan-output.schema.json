@@ -9,7 +9,7 @@
   "properties": {
     "version": {
       "type": "string",
-      "const": "6.0",
+      "const": "7.0",
       "description": "Schema version, bumps on break change"
     },
     "file": {

@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
-# select-fewshot.sh — deterministic + 易难分层 few-shot anchor 选取（v6.1）
+# select-fewshot.sh — deterministic + 易难分层 few-shot anchor 选取（offline dev-eval，v7.0）
 #
-# 从 evals/anchor-set.jsonl 抽 2 条 verified 样本（1 易 1 难）拼入 reviewer prompt §4。
-# 用 sha256(draft_text) 做 seed → 同一 draft 跑两次结果一致（reviewer 评分稳定性 ↑）。
+# v7.0：离线 dev-eval 工具，**不在 per-use 路径**（per-use reviewer 直接读 constitution §5 before→after）。
+# 用于离线一致性实验时，从 evals/anchor-set.jsonl 抽 2 条 verified 样本（1 易 1 难）拼 few-shot。
+# 用 sha256(draft_text) 做 seed → 同一 draft 跑两次结果一致。
 # 排除与本次 draft 同 source_commit 的样本（防 Grader Gaming）。
 #
 # 用法：bash select-fewshot.sh <draft-path> <dimension>
-#   <draft-path>  待评 draft 文件
-#   <dimension>   D1 | D2 | D3 | D4 | D5
+#   <dimension>   D1 | D2 | D3 | D4 | D5（离线 eval 维度标签）
 #
 # stdout：2 行 jsonl（可空，anchor-set 为空或全被排除时）
-# stderr：人类可读说明（spawn 进度行用）
+# stderr：人类可读说明
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ANCHOR="$SCRIPT_DIR/../evals/anchor-set.jsonl"
+ANCHOR="$SCRIPT_DIR/../anchor-set.jsonl"   # offline-harness/ 的父目录 evals/ 下
 
 if [[ $# -ne 2 ]]; then
     echo "用法：bash select-fewshot.sh <draft-path> <dimension>" >&2

@@ -1,9 +1,9 @@
-# 去 AI 味约束清单（Anti-AI-Taste Rules）v6.0
+# 去 AI 味约束清单（Anti-AI-Taste Rules）
 
 > **automation-level**: `regex-auto`（scripts/scan-ai-taste.sh 字面执行 230+ 条）
-> **SSOT**: 字面 anchor 真值源；SKILL.md §4 红线速查是本文件 §0-§3 的 cached compact mirror，改前对照。
-> **load-when**: scan L1 fail 时主对话查规则细则；L2/L3 评分时遇到非字面违规但语感像 AI 时查 §1.5 结构级反模式。
-> **配套 LLM judge**: v6.0 把"同形异义、新词演化、整体散文 AI 体、粗颗粒度判定"等硬规则盲点交给主对话 L2 self-judge + L3 多 reviewer（参见 SKILL.md §2.2 + §3 D1-D5 mini-rubric + references/constitution.md 详细 rubric）。
+> **SSOT**: 字面 anchor 真值源；SKILL.md §3 红线 4 铁律速查是本文件 §0-§3 的 cached compact mirror，改前对照。
+> **load-when**: scan L1 fail 时主对话查规则细则；reviewer 遇到非字面违规但语感像 AI 时查 §1.5 结构级反模式。
+> **配套 clean-context reviewer**: 「同形异义、新词演化、整体散文 AI 体、粗颗粒度判定」等硬规则盲点交给 `agents/writing-reviewer.md` 的「AI味·标点」焦点（判依据见 references/constitution.md §0 + §6）。
 
 156 红线 + 60 橙线 + 17 结构反模式 + 上下文感知白名单 + 千句密度动态阈值 + 5 条咨询报告专属约束 + 11 篇真实锚本。基于 2024-2026 年 Wikipedia / Originality.ai / GPTZero / 中文社区调研整理 + cicpa 实战治理沉淀，每条都有"为什么是 AI 味"的简短理由。
 

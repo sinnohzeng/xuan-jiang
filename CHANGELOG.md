@@ -2,6 +2,38 @@
 
 All notable changes to xuan-jiang `writing-polish` skill are documented here. Format follows [Keep a Changelog 1.1](https://keepachangelog.com/en/1.1.0/), versioning follows [Semver 2.0](https://semver.org/).
 
+> 历史段按当时状态记录，**不代表当前文件仍存在**（如 v5.x 的 `prompts/multi-agent/`、`config/default.yaml`、v6.x 的 `prompts/reviewer.md` / 0-3 评分链均已在后续版本移除或下沉离线）。当前状态以 `README.md` / `docs/status.md` / `SKILL.md` 为准。
+
+## [7.0.0] — 2026-05-28（两世界拆分：per-use 自然语言反馈 + 数值评分下沉离线 + 任仲然立文实质轴）
+
+### ⚠️ Breaking
+
+- **评分链从 per-use 热路径整体移除**。每次改稿不再打 `0-3` 逐维分、不再写 `.writing-polish-trace/*.json`、不再 `max()` 汇总、不再有 5 维 mini-bar。改为 clean-context reviewer 返回**自然语言反馈 + 粗判闸门**（够好了 / 要改 / 红线未清）。依据：全行业改稿循环（Self-Refine / Reflexion / CRITIC / Constitutional-AI / Anthropic evaluator-optimizer cookbook）都用可执行 NL 反馈；数值逐维打分（G-Eval / Prometheus / MT-Bench）是**离线打榜**工具。
+- **数值世界下沉 `evals/offline-harness/`**：`llm-judge-research-report.md`、`select-fewshot.sh`、`split-calibration.sh`、`scan-hard-gate.sh`、`eval-record.schema.json` 迁入，仅离线衡量 polisher 本身用。
+- **删除** `prompts/`（整目录）、`prompts/reviewer.md`、`prompts/spot-check.md`、`schemas/reviewer-output.schema.json`、`scripts/auto-fix-loop.sh`、`.writing-polish-trace` 概念。
+- **L3 reviewer 升级为 Claude Code 插件子代理** `agents/writing-reviewer.md`（只读工具 `Read, Bash, Grep`，结构性强制「只评不改」）；`plugin.json` 加 `"agents": "./agents/"`；`allowed-tools` 改 `Bash, Read, Edit, Write, Task`。
+- **scan-output 契约版本** `6.0 → 7.0`（`scan-ai-taste.sh` + `schemas/scan-output.schema.json` const 同步）。
+- **Rollback**：如需回到 v6.1 评分链，`git checkout` v6.1.0 tag。
+
+### Added
+
+- `agents/writing-reviewer.md`：clean-context 审稿子代理，按 立意 / 结构与论据 / 材料·事实 / AI味·标点 四焦点返回 `<feedback>` + `<verdict>`。
+- **正向实质三焦点**（`constitution.md` §0.5）：立意 / 结构与论据 / 材料·事实——回应 Anthropic「单边评测导致单边优化」，补齐任仲然真正重视而 v6 缺失的「写得好」评价轴。
+- **事实敬畏三态**（reviewer + Coach）：① 已有材料可证实 / ② 用户未提供需追问 / ③ 不得替用户编造。
+- `references/coach-checkpoints.md`：Coach 监督生成弧（立意→构思→提纲→材料→结构，逐段 checkpoint）。
+- `references/renzhongran-coverage-matrix.md`：任仲然《怎样写作》12 讲 → SKILL 行为 → reference → eval 的逐项继承审计矩阵。
+- `evals/offline-harness/README.md` + `evals/README.md` 重写为「离线 dev-eval harness」。
+- `split-calibration.sh` 非空 guard：`anchor=0` 时非零退出（code 4），杜绝 v6 那次 anchor 静默为空半年无人发现。
+
+### Changed / Fixed
+
+- **SKILL.md** 重写为 ~150 行：§0 两世界拆分 / §2.1 Coach 监督弧 / §2.2 Polish 4 步（L1 → reviewer → 串行改稿 → 验证）/ §4 四大审查焦点（替换 D1-D5 mini-rubric）。
+- **constitution.md** 从「0-3 评分细则」改为「审稿判依据（好/差长啥样）」；D1-D5 折叠进单一「AI味·标点」焦点的四个面；剥离残留数值标签（`D4=2` 等）；§5 examples 保留为 before→after 参考对（双用途：reviewer 参考 + 离线 gold）。
+- **reviewer-routing.md** 从「5 维→N reviewer」改为「焦点覆盖按长度/体裁分摊」，并发上限 5→3。
+- **anchor 数据修复**：标 9 条 §5 人工 gold 记录 `verified: true`，`anchor-set.jsonl` 从 0 → 9，`eval-set.jsonl` 不再是 calibration 字节副本。
+- **修正**：`scan-ai-taste.sh` 实际调用 `check-cn-quotes.py`，故后者保留（非冗余）；移除对已删 `auto-fix-loop.sh` 的提示。
+- **文档债清零**：README 重写为 current-first（修 `min()`→反馈、删已不存在的 `evals.json`/`test-runner.sh` 文件树）；CONTRIBUTING 对齐 2026-05 官方 frontmatter（删 `effort`/`paths` 必填说法，修「直角引号」与国标矛盾）；TROUBLESHOOTING v4.2→v7.0；新增 `docs/status.md`；v4/v5 handoff + 过期 active memory + 旧调研归档至 `docs/archive/`。
+
 ## [6.1.0] — 2026-05-28（评分链可验证化：量纲统一 + L3 默认必跑 + few-shot anchor + L2 留痕）
 
 ### ⚠️ Breaking

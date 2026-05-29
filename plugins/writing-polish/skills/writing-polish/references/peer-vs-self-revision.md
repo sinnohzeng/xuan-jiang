@@ -1,7 +1,7 @@
 # 改自己 vs 改他人的辨证法
 
-> **load-when**: Polish Protocol step 4 修改阶段（主对话提醒自己 tone 约束）；L3 spawn 时附加给每个 reviewer（“他批”礼貌必读）。
-> **automation-level**: `claude-code-session-only`（主对话 + reviewer 必读）
+> **load-when**: Polish Protocol step 3 修改阶段（主对话提醒自己 tone 约束）；`agents/writing-reviewer.md` 子代理已内置「他批」礼貌（本文件是其依据 SSOT）。
+> **automation-level**: `claude-code-session-only`（主对话 + reviewer 子代理必读）
 > **来源**: 《怎样写作》（任仲然）第十二讲“修改文稿文章经验谈”
 > **设计原因**: v5.x SKILL 输出独白式审稿报告，不区分自批与他批的语气差异，常出现评判作者本人的表述，伤害用户使用意愿。v6.0 补这一维。
 > **scan 预期**: 本文件是教学型 meta-documentation，含若干反模式举例（用 `<!-- scan-skip -->` 包裹）。scan-ai-taste.sh 对本文件预期 fail，与 [`anti-ai-taste-anchors.md`](./anti-ai-taste-anchors.md) 自身亦 fail 同理。SKILL 的红线 gate 针对用户 draft，不针对教学 reference。
@@ -141,20 +141,20 @@
 
 ---
 
-## §3 L3 reviewer 必读
+## §3 reviewer 子代理必读
 
-v6.0 Polish Protocol step 3 触发 L3 时，主对话用 [`../prompts/reviewer.md`](../prompts/reviewer.md) spawn 3 个 clean-context Agent。
+v7.0 Polish Protocol step 2 触发审校时，主对话用 Task 工具 spawn [`../../agents/writing-reviewer.md`](../../agents/writing-reviewer.md)（clean context，返回自然语言反馈 + verdict，不打数值分）。
 
-每个 reviewer 必读本文件 §2，遵守“他批”礼貌。
+每个 reviewer 必守本文件 §2「他批」礼貌。
 
-### §3.1 reviewer 输出 tone 自检表（每次返回前对照）
+### §3.1 reviewer 反馈 tone 自检表（每次返回前对照）
 
 <!-- scan-skip -->
 | 自检项 | ✓ 通过 | ✗ 重写 |
 |---|---|---|
-| `rationale` 描述的是 draft 还是作者？ | draft | 作者，本条须重写 |
-| `top_issues` 是否定位到具体段/句？ | 是 | 否，本条须重写 |
-| `top_fixes` 是否给具体改法？ | 是 | 只说“建议改”，本条须重写 |
+| `<feedback>` 描述的是 draft 还是作者？ | draft | 作者，本条须重写 |
+| 是否定位到具体段/句？ | 是 | 否，本条须重写 |
+| 是否给具体改法？ | 是 | 只说「建议改」，本条须重写 |
 | 整体 tone 是建议还是评判？ | 建议 | 评判，本条须重写 |
 <!-- /scan-skip -->
 
@@ -162,9 +162,9 @@ v6.0 Polish Protocol step 3 触发 L3 时，主对话用 [`../prompts/reviewer.m
 
 | ✗ reviewer 反例 | ✓ reviewer 正例 |
 |---|---|
-| “rationale: 通篇 AI 味浓重，结构松散” | “rationale: §2-§4 三段使用大厂黑话密度过高（黑词 5 处 / 千字），D2 朴实原则受损；§3 段间过渡缺失，D3 议论方法受损” |
-| “top_issues: [‘整体水平低’]” | “top_issues: [‘§2 句 3 出现 \”赋能\“’, ‘§3 句 1 出现 \”闭环\“’, ‘§4 段缺主题句’]” |
-| “top_fixes: [‘重写’]” | “top_fixes: [‘将 \”赋能\“ 改为 \”支撑\“’, ‘将 \”闭环\“ 改为 \”完整流程\“’, ‘§4 加一句总起’]” |
+| 「通篇 AI 味浓重，结构松散」 | 「【AI味/标点】§2-§4 三段大厂黑话密度过高（黑词 5 处/千字），朴实原则受损；【结构】§3 段间过渡缺失」 |
+| 「整体水平低」 | 「§2 句 3 出现『赋能』；§3 句 1 出现『闭环』；§4 段缺主题句」 |
+| 「重写」 | 「将『赋能』改为『支撑』；将『闭环』改为『完整流程』；§4 加一句总起」 |
 
 ### §3.3 reviewer 与作者的关系
 
