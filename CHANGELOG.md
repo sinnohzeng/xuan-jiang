@@ -4,6 +4,13 @@ All notable changes to xuan-jiang `writing-polish` skill are documented here. Fo
 
 > 历史段按当时状态记录，**不代表当前文件仍存在**（如 v5.x 的 `prompts/multi-agent/`、`config/default.yaml`、v6.x 的 `prompts/reviewer.md` / 0-3 评分链均已在后续版本移除或下沉离线）。当前状态以 `README.md` / `docs/status.md` / `SKILL.md` 为准。
 
+## [7.0.1] — 2026-06-06（修复 install-blocking manifest）
+
+### Fixed
+
+- **`plugin.json` 删除 `"agents": "./agents/"` 与 `"skills": "./skills/"` 字段**。v7.0.0 为注册 `writing-reviewer` 子代理而手写了 `"agents": "./agents/"`，但 Claude Code 插件 manifest 不接受 `agents` 写成目录字符串，`claude plugin validate` 报 `agents: Invalid input`，导致 `claude plugin install writing-polish@xuan-jiang` 整体失败。agents / skills / commands 一律由 `agents/`、`skills/`、`commands/` 目录**自动发现**，无需在 manifest 声明（官方 feature-dev / pr-review-toolkit 即如此）。删除后 `writing-reviewer` 子代理与 `writing-polish`、`runse` 两个 skill 均正常加载。
+- 行为零变化：仅修 manifest，技能与子代理内容不动。
+
 ## [7.0.0] — 2026-05-28（两世界拆分：per-use 自然语言反馈 + 数值评分下沉离线 + 任仲然立文实质轴）
 
 ### ⚠️ Breaking

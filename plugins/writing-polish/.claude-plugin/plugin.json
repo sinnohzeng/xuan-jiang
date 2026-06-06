@@ -1,13 +1,11 @@
 {
   "name": "writing-polish",
-  "version": "7.0.0",
+  "version": "7.0.1",
   "description": "Coaches, drafts, polishes, and audits Chinese documents based on 《怎样写作》(任仲然). v7.0 两世界拆分: per-use 改稿走 clean-context writing-reviewer 子代理返回自然语言反馈 + 粗判 (够好了/要改/红线未清), 数值逐维评分下沉 evals/offline-harness/ 离线 dev-eval. 审查四焦点: 立意 / 结构与论据 / 材料·事实 / AI味·标点. Modes: coach / polish / audit.",
   "author": {
     "name": "sinnohzeng"
   },
   "repository": "https://github.com/sinnohzeng/xuan-jiang",
   "license": "MIT",
-  "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "renzhongran", "context-aware", "consulting-report", "multi-agent-review", "clean-context-subagent", "writing-reviewer-subagent", "natural-language-feedback", "offline-dev-eval"],
-  "skills": "./skills/",
-  "agents": "./agents/"
+  "keywords": ["writing", "editing", "polish", "revision", "docx", "chinese", "anti-ai-taste", "renzhongran", "context-aware", "consulting-report", "multi-agent-review", "clean-context-subagent", "writing-reviewer-subagent", "natural-language-feedback", "offline-dev-eval"]
 }
