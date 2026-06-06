@@ -26,6 +26,7 @@ paths: "**/*.docx, **/*.md, **/*.txt"
 | 查公文格式国标 | `references/gongwen-format.md` |
 | scan 失败排错 | §4.4 失败重写指引 + `references/failure-cases.md` + `TROUBLESHOOTING.md` |
 | 看跨工具对照 | `docs/research/cross-skill-benchmark.md` |
+| 写民俗玄学 / 情绪价值长文 | §3.4 + `references/folklore-emotional-value-style.md` |
 
 ## 1. 触发判断（Decision Tree）
 
@@ -104,7 +105,14 @@ paths: "**/*.docx, **/*.md, **/*.txt"
 
 **判定优先级**：(1) 目录下有客户批注版 docx，按修订模式；(2) 用户明确要求“重写”，按大范围重写；(3) 冲突时以用户当前指令为准。
 
-**修订模式克制原则**：只改批注明确指向段落或事实性错误，不做文风层面全面改写，即使段落有 AI 味也克制处理；每处改动前自问“客户能在 track changes 里一眼看懂吗”。
+### 3.4 民俗玄学 / 情绪价值类长文
+
+用户明确要求“只聊玄学”“只聊情绪价值”“不聊医学 / 科学判断”时，按 `references/folklore-emotional-value-style.md` 执行：
+- 整体讲述与个人具体分析分开；整体部分不要反复代入个人名字，最后单设“某某的单独分析”。
+- 口吻克制温柔，少断言，多用“可以理解为”“更容易被说成”“民俗里常讲”；明确这是文化叙事和情绪价值，不作事实预测。
+- 可锚定一位中国作家的气质来定调。痣相、身体民俗类长文优先用汪曾祺散文方向：清淡、家常、温和，只借气质，不摹仿具体句子。
+- 飞书场景下的长篇调研或系统性文章，优先交付飞书云文档；聊天里只发链接、变更点和自检结果。
+- 写完仍必须运行 `scripts/scan-ai-taste.sh`，通过后才能交付。
 
 ## 4. AI 味约束（三步检查，零容忍）
 
@@ -151,8 +159,16 @@ paths: "**/*.docx, **/*.md, **/*.txt"
 
 #### 第三步：交付前 (Gate)，必须执行
 
+优先在当前项目根目录执行：
+
 ```bash
 bash scripts/scan-ai-taste.sh "$OUTPUT_FILE"
+```
+
+如果当前项目没有本地 `scripts/scan-ai-taste.sh`，使用本 skill 自带脚本路径执行，不要停止在“脚本不存在”：
+
+```bash
+bash /home/claw/xuan-jiang/plugins/writing-polish/skills/writing-polish/scripts/scan-ai-taste.sh "$OUTPUT_FILE"
 ```
 
 任何红线指标未达标，**禁止交付**，重写直至通过。
@@ -241,6 +257,7 @@ bash scripts/scan-ai-taste.sh "$OUTPUT_FILE"
 | **`ai-taste-examples.md`** | **反例对照（含按文体、按修改深度分维度）** | **首次使用此技能时必读** |
 | `failure-cases.md` | scan 失败案例库与重写过程 | scan 多轮失败时 |
 | `citation-spec.md` | 模糊归因的具体改写模板 | 引用 / 归因写作时 |
+| `folklore-emotional-value-style.md` | 民俗玄学与情绪价值长文写法，含“整体讲述 / 个人分析”分离和汪曾祺式温和口吻 | 用户要求只聊玄学、民俗、情绪价值时 |
 
 ### assets（用于产出的素材）
 
