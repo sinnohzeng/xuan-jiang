@@ -6,6 +6,14 @@
 > **设计原因**: v5.x 把写作视为 post-hoc auditor 任务，对“如何培养写作者”完全没继承；v6.0 补齐“养成”维度。SKILL 不只检测 AI 味，还教用户怎么写出非 AI 味的文章。
 > **scan 预期**: 本文件是教学型 meta-documentation，少量举例可能触发硬红线。scan-ai-taste.sh 对本文件预期 PASS 或仅含 1-2 项软警告，与 [`anti-ai-taste-anchors.md`](./anti-ai-taste-anchors.md) 同属 reference 而非用户 draft。
 
+## 目录
+
+- §1 观察和阅读（writing 的上游）
+- §2 摹仿→制造→创造 三段弧
+- §3 写作信心建设
+- §4 规律再造（个性化写作节奏）
+- §5 与 Polish Protocol 的边界
+
 ---
 
 ## §1 观察和阅读（writing 的上游）

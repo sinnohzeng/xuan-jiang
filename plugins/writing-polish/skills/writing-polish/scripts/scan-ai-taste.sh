@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scan-ai-taste.sh —— writing-polish v7.0 L1 hard gate
+# scan-ai-taste.sh —— writing-polish v8.0 L1 hard gate
 #
 # 角色：交付前 AI 味自检（L1 硬扫）+ JSON 输出供主对话 / writing-reviewer 路由决策。
 # 在交付任何修改稿前必跑。任何硬约束未达标，禁止交付。
@@ -27,6 +27,9 @@ set -uo pipefail
 FILE=""
 MODE="standard"
 LOG_TO=""
+# GENRE 决定体裁豁免档：base（默认，CI 硬闸 / audit / dogfood，无体裁豁免，保留 context 语境白名单）
+# | G1-G8（Coach/Polish 由体裁推断显式传入，开启对应体裁的软化豁免）| auto（暂等同 base，未来做体裁自动判别）
+GENRE="base"
 # legacy positional arg support
 if [ "${1:-}" != "" ] && [ "${1:0:2}" != "--" ]; then
     FILE="$1"
@@ -36,11 +39,14 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --suggest-fix) MODE="suggest"; shift ;;
         --json) MODE="json"; shift ;;
-        --target) FILE="${2:-}"; shift 2 ;;
-        --log-to) LOG_TO="${2:-}"; shift 2 ;;
+        --target) FILE="${2:-}"; shift; [ $# -gt 0 ] && shift ;;
+        --log-to) LOG_TO="${2:-}"; shift; [ $# -gt 0 ] && shift ;;
+        --genre) GENRE="${2:-base}"; shift; [ $# -gt 0 ] && shift ;;
         *) shift ;;
     esac
 done
+# 归一 GENRE：auto 暂等同 base（体裁自动判别未实现，诚实降级不假装）
+[ "$GENRE" = "auto" ] && GENRE="base"
 
 if [ -z "$FILE" ]; then
     echo "用法: bash scan-ai-taste.sh <file.md|--target file.md> [--suggest-fix|--json|--log-to <jsonl-path>]" >&2
@@ -83,17 +89,42 @@ red_total = len(re.findall(r'^\s+✗', output_plain, re.MULTILINE))
 soft_total = len(re.findall(r'^\s+⚠', output_plain, re.MULTILINE))
 
 cats = []
+violations = []  # v8.0 evidence span：行级 {rule, severity, line, matched}
 current = None
+current_rule = None
+current_sev = None
 for line in output_plain.splitlines():
     cat_m = re.match(r'^▼\s+(.+?)$', line)
     if cat_m:
         current = {'name': cat_m.group(1).strip(), 'red': 0, 'soft': 0}
         cats.append(current)
-    elif current is not None:
-        if re.match(r'^\s+✗', line):
-            current['red'] += 1
-        elif re.match(r'^\s+⚠', line):
-            current['soft'] += 1
+        current_rule = None
+        continue
+    if current is None:
+        continue
+    red_m = re.match(r'^\s+✗\s+(.+?)[:：]', line)
+    soft_m = re.match(r'^\s+⚠\s+(.+?)[:：]', line)
+    if red_m:
+        current['red'] += 1
+        current_rule, current_sev = red_m.group(1).strip(), 'red'
+    elif soft_m:
+        current['soft'] += 1
+        current_rule, current_sev = soft_m.group(1).strip(), 'soft'
+    elif re.match(r'^\s+✗', line):
+        current['red'] += 1; current_rule = None
+    elif re.match(r'^\s+⚠', line):
+        current['soft'] += 1; current_rule = None
+    elif re.match(r'^\s+✓', line):
+        current_rule = None
+    elif current_rule is not None:
+        dm = re.match(r'^\s+(\d+):(.*)$', line)  # grep -nE 明细行："    <n>:<content>"
+        if dm:
+            violations.append({
+                'rule': current_rule,
+                'severity': current_sev,
+                'line': int(dm.group(1)),
+                'matched': dm.group(2).strip()[:200],
+            })
 cats = [c for c in cats if c['red'] > 0 or c['soft'] > 0]
 
 try:
@@ -107,7 +138,7 @@ draft_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
 
 if mode == 'json':
     result = {
-        "version": "7.0",
+        "version": "8.0",
         "file": os.path.abspath(file_path),
         "draft_hash": draft_hash,
         "exit_code": exit_code,
@@ -122,6 +153,7 @@ if mode == 'json':
             "paragraph_count": paragraph_count,
         },
         "human_readable_output": output_plain,
+        "violations": violations,
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -131,10 +163,10 @@ if log_to:
         os.makedirs(log_dir, exist_ok=True)
     final_action = "passed" if exit_code == 0 else ("fixed" if exit_code == 2 else "rolled_back")
     log_entry = {
-        "version": "7.0",
+        "version": "8.0",
         "timestamp": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         "draft_hash": draft_hash,
-        "protocol": "v7.0",
+        "protocol": "v8.0",
         "mode": "audit",
         "scan_summary": {
             "red_line_violations_total": red_total,
@@ -285,8 +317,36 @@ suggest_for() {
     esac
 }
 
+# v8.0 fix-map（首版 top-20 高频黑词逐词替换建议；长尾回退 suggest_for cn_hard 类别建议）
+# 156 词全量推迟——只覆盖实测最高频的一批，给具体替换而非笼统"改成具体动词"
+fix_word() {
+    case "$1" in
+        赋能) echo "帮 / 支持 / 让…能" ;;
+        抓手) echo "着力点 / 办法 / 突破口" ;;
+        闭环) echo "全流程管好 / 形成完整流程" ;;
+        打造) echo "建 / 做成 / 建成" ;;
+        助力) echo "帮 / 推动" ;;
+        链路) echo "环节 / 流程" ;;
+        颗粒度) echo "精细程度 / 详略" ;;
+        拉通) echo "打通 / 协调" ;;
+        复盘) echo "回顾总结" ;;
+        对齐) echo "统一 / 保持一致" ;;
+        深度融合) echo "深度结合" ;;
+        提质增效) echo "提高质量和效率" ;;
+        多维度) echo "多方面 / 从几个角度" ;;
+        体系化) echo "成体系 / 系统地" ;;
+        跨界融合) echo "跨领域结合" ;;
+        重塑) echo "重新调整 / 重建" ;;
+        切实推动) echo "推动 / 抓落实" ;;
+        令人印象深刻) echo "值得记住 / 有说服力" ;;
+        至关重要) echo "很重要 / 关键" ;;
+        综上所述) echo "删除，直接给结论" ;;
+        *) return 1 ;;
+    esac
+}
+
 echo "================================================"
-echo "       AI 味红线扫描 v4.3"
+echo "       AI 味红线扫描 v8.0"
 echo "       文件：$FILE"
 [ "$MODE" = "suggest" ] && echo "       模式：建议改写"
 echo "================================================"
@@ -296,12 +356,12 @@ echo
 # §1.4 标点红线（必须 = 0）
 # ----------------------------------------------------------
 echo "▼ §1.4 标点红线（阈值 = 0）"
-DASH=$(count_pattern "——|—" "$FILE")
+DASH=$(count_pattern "——|—|――|―" "$FILE")
 PAREN=$(count_pattern "（如|（即|（也就是说" "$FILE")
 
 if [ "$DASH" -gt 0 ]; then
     printf "  ${RED}✗ 破折号: %d 处${NC} (须 = 0)\n" "$DASH"
-    grep -nE '——|—' "$FILE" | head -5 | sed 's/^/    /'
+    grep -nE '——|—|――|―' "$FILE" | head -5 | sed 's/^/    /'
     [ "$MODE" = "suggest" ] && suggest_for dash
     VIOLATIONS=$((VIOLATIONS + 1))
     inc_section "s14" "$DASH"
@@ -357,23 +417,52 @@ echo
 # ----------------------------------------------------------
 # §1.3 句式红线（必须 = 0）
 # ----------------------------------------------------------
-echo "▼ §1.3 句式红线（阈值 = 0）"
-NEG_PARALLEL=$(count_pattern "不是.{1,15}而是|不仅.{1,15}更是|不只是.{1,15}而是|与其说.{1,10}不如说" "$FILE")
-RUOSHUO=$(count_pattern "如果说.{1,5}那么" "$FILE")
-
-if [ "$NEG_PARALLEL" -gt 0 ]; then
-    printf "  ${RED}✗ 否定平行结构: %d 处${NC}\n" "$NEG_PARALLEL"
-    grep -nE "不是.{1,15}而是|不仅.{1,15}更是|不只是.{1,15}而是|与其说.{1,10}不如说" "$FILE" | head -3 | sed 's/^/    /'
+# §1.3 句式软信号：否定平行 / 如果说…那么 是语境判断题（讲话稿 / 随笔的排比是正当修辞），
+# L1 不做零容忍硬判——仅当"同一自然段块内字面否定平行 ≥3 次"才软 WARN（N=3 启发式，WARN-only），
+# 低密度单/双处下沉 L3 reviewer 语义判定。G8 咨询报告单次否定平行亦由 reviewer 捕获（constitution §5 Example H）。
+echo "▼ §1.3 句式软信号（否定平行 / 如果说…那么，下沉 L3 reviewer）"
+NEG_PARALLEL_RE="不是.{1,15}?而是|不仅.{1,15}?更是|不只是.{1,15}?而是|并非.{1,15}?而是|与其说.{1,10}?不如说"
+NEG_TOTAL=$(count_pattern "$NEG_PARALLEL_RE" "$FILE")
+# per-block 最大密度（新原语，非复用 threshold_for_length 全文密度）：按空行切段，
+# 标题行 / 列表项各自成块（防跨块虚高）；在 scan-skip 预处理后的正文上做。
+NEG_BLOCK_MAX=$(python3 - "$FILE" <<'PYEOF'
+import re, sys
+try:
+    text = open(sys.argv[1], encoding='utf-8').read()
+except Exception:
+    print(0); sys.exit(0)
+neg = re.compile(r'不是.{1,15}?而是|不仅.{1,15}?更是|不只是.{1,15}?而是|并非.{1,15}?而是|与其说.{1,10}?不如说')
+blocks, cur = [], []
+for line in text.split('\n'):
+    s = line.strip()
+    if s == '':
+        if cur: blocks.append('\n'.join(cur)); cur = []
+    elif s.startswith('#') or re.match(r'^([-*]|\d+[.)])\s', s):
+        if cur: blocks.append('\n'.join(cur)); cur = []
+        blocks.append(line)  # 列表项 / 标题各自成块
+    else:
+        cur.append(line)
+if cur: blocks.append('\n'.join(cur))
+print(max((len(neg.findall(b)) for b in blocks), default=0))
+PYEOF
+)
+NEG_BLOCK_MAX=$(echo "$NEG_BLOCK_MAX" | head -1 | tr -d ' \n\r'); [ -z "$NEG_BLOCK_MAX" ] && NEG_BLOCK_MAX=0
+if [ "$NEG_BLOCK_MAX" -ge 3 ]; then
+    printf "  ${YEL}⚠ 否定平行段内密集: 单段最多 %d 处（≥3 触发软警告，非硬红线；结构同一性交 reviewer）${NC}\n" "$NEG_BLOCK_MAX"
+    grep -nE "$NEG_PARALLEL_RE" "$FILE" | head -3 | sed 's/^/    /'
     [ "$MODE" = "suggest" ] && suggest_for neg_parallel
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s13" "$NEG_PARALLEL"
+    WARNINGS=$((WARNINGS + 1))
+    inc_section "s13" "$NEG_BLOCK_MAX"
+elif [ "$NEG_TOTAL" -gt 0 ]; then
+    printf "  ${GRN}✓ 否定平行: %d 处（段内 <3，低密度，下沉 reviewer 语义判定）${NC}\n" "$NEG_TOTAL"
 else
     printf "  ${GRN}✓ 否定平行结构 = 0${NC}\n"
 fi
 
+RUOSHUO=$(count_pattern "如果说.{1,5}那么" "$FILE")
 if [ "$RUOSHUO" -gt 0 ]; then
-    printf "  ${RED}✗ 如果说...那么...: %d 处${NC}\n" "$RUOSHUO"
-    VIOLATIONS=$((VIOLATIONS + 1))
+    printf "  ${YEL}⚠ 如果说...那么...: %d 处（软信号，下沉 reviewer）${NC}\n" "$RUOSHUO"
+    WARNINGS=$((WARNINGS + 1))
     inc_section "s13" "$RUOSHUO"
 else
     printf "  ${GRN}✓ 如果说...那么... = 0${NC}\n"
@@ -384,7 +473,7 @@ echo
 # §1.1 中文词汇红线（核心 50 条，阈值 = 0）
 # ----------------------------------------------------------
 echo "▼ §1.1 中文词汇红线（阈值 = 0）"
-CN_HARD="赋能|重塑|闭环|抓手|链路|打造|助力|切实推动|深度融合|多维度|体系化|话语建构|跨界融合|提质增效|接住|托住|共情|看见你|令人印象深刻|令人惊叹|不可或缺|至关重要|独树一帜|蓬勃发展|熠熠生辉|经久不衰|在某种意义上说|不可磨灭的|可谓是|值得注意的是|值得一提的是|不难发现|综上所述|由此可见|本质上|更深层次|需要指出的是|必须强调的是|不可否认的是|业内人士指出|相关研究表明|大量实践证明|普遍认为"
+CN_HARD="赋能|重塑|闭环|抓手|链路|打造|助力|切实推动|深度融合|多维度|体系化|话语建构|跨界融合|提质增效|接住|托住|共情|看见你|令人印象深刻|令人惊叹|不可或缺|至关重要|独树一帜|蓬勃发展|熠熠生辉|经久不衰|在某种意义上说|不可磨灭的|可谓是|值得注意的是|值得一提的是|不难发现|不难看出|综上所述|由此可见|本质上|更深层次|需要指出的是|必须强调的是|不可否认的是|业内人士指出|相关研究表明|大量实践证明|普遍认为"
 CN_RAW=$(grep -oE "$CN_HARD" "$FILE" 2>/dev/null || true)
 CN_COUNT=$(echo "$CN_RAW" | grep -c . 2>/dev/null || true)
 CN_COUNT=$(echo "$CN_COUNT" | head -1 | tr -d ' \n\r')
@@ -393,7 +482,13 @@ CN_COUNT=$(echo "$CN_COUNT" | head -1 | tr -d ' \n\r')
 if [ "$CN_COUNT" -gt 0 ]; then
     printf "  ${RED}✗ 中文红线词命中: %d 处${NC}\n" "$CN_COUNT"
     grep -nE "$CN_HARD" "$FILE" | head -10 | sed 's/^/    /'
-    [ "$MODE" = "suggest" ] && suggest_for cn_hard
+    if [ "$MODE" = "suggest" ]; then
+        suggest_for cn_hard
+        # v8.0 fix-map：对命中的高频黑词给逐词替换（top-20 覆盖，长尾回退上面的类别建议）
+        for w in $(echo "$CN_RAW" | sort -u); do
+            rep=$(fix_word "$w") && printf "      %s → %s\n" "$w" "$rep"
+        done
+    fi
     VIOLATIONS=$((VIOLATIONS + 1))
     inc_section "s11" "$CN_COUNT"
 else
@@ -426,7 +521,7 @@ echo
 # §1.1 三段式套壳（阈值 = 0）
 # ----------------------------------------------------------
 echo "▼ §1.1 三段式套壳（阈值 = 0）"
-SANDUAN=$(count_pattern "首先.{0,30}其次.{0,30}最后" "$FILE")
+SANDUAN=$(count_pattern "首先.{0,30}其次.{0,30}(最后|再者|然后|最终)" "$FILE")
 if [ "$SANDUAN" -gt 0 ]; then
     printf "  ${RED}✗ 首先...其次...最后: %d 处${NC}\n" "$SANDUAN"
     [ "$MODE" = "suggest" ] && suggest_for sanduan
@@ -538,7 +633,8 @@ echo
 # ----------------------------------------------------------
 echo "▼ §1.6 元注释 / 客服话术（阈值 = 0）"
 
-META_OPEN="以下是几点说明|以下是几点想法|我将从.{1,3}个方面|我将围绕|让我为您整理|让我帮您梳理|让我先来分析|请允许我|请容我先|接下来我会|我接下来要"
+# v8.0 补：元论述导读（第三人称"本文将从…"）与第一人称元注释同属 §1.6.1
+META_OPEN="以下是几点说明|以下是几点想法|我将从.{1,3}个方面|我将围绕|本文将从.{1,3}个方面|本文将围绕|下文将从|下面从.{0,8}展开|让我为您整理|让我帮您梳理|让我先来分析|请允许我|请容我先|接下来我会|我接下来要"
 META_OPEN_COUNT=$(count_pattern "$META_OPEN" "$FILE")
 if [ "$META_OPEN_COUNT" -gt 0 ]; then
     printf "  ${RED}✗ §1.6.1 元注释开头: %d 处${NC}\n" "$META_OPEN_COUNT"
@@ -586,16 +682,23 @@ else
     printf "  ${GRN}✓ §1.6.4 服务话术段尾 = 0${NC}\n"
 fi
 
-# §1.6.5 拟人化集体代词（高密度才报警）
-WERON=$(count_pattern "我们都知道|我们大家|让我们一起来|让我们一起|让我们共同|不妨想象一下|不妨设想|试想一下" "$FILE")
-if [ "$WERON" -gt 0 ]; then
-    printf "  ${RED}✗ §1.6.5 拟人化集体代词: %d 处${NC}\n" "$WERON"
-    grep -nE "我们都知道|我们大家|让我们一起来|让我们一起|让我们共同|不妨想象一下|不妨设想|试想一下" "$FILE" | head -3 | sed 's/^/    /'
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s16" "$WERON"
-else
-    printf "  ${GRN}✓ §1.6.5 拟人化集体代词 = 0${NC}\n"
-fi
+# §1.6.5 拟人化集体代词：讲话稿 G2 / 随笔 G6 / 自媒体 G7 的集体动员（"让我们共同"）是正当修辞 → 豁免；
+# 其余体裁及 base 档降为软 WARN，不再零容忍硬 FAIL（语境判断题，实测 02-grain-speech 讲话稿曾被误 FAIL）。
+WERON_RE="我们都知道|我们大家|让我们一起来|让我们一起|让我们共同|不妨想象一下|不妨设想|试想一下"
+WERON=$(count_pattern "$WERON_RE" "$FILE")
+case "$GENRE" in
+    G2|G6|G7)
+        printf "  ${GRN}✓ §1.6.5 拟人化集体代词: %d 处（%s 体裁动员修辞豁免）${NC}\n" "$WERON" "$GENRE" ;;
+    *)
+        if [ "$WERON" -gt 0 ]; then
+            printf "  ${YEL}⚠ §1.6.5 拟人化集体代词: %d 处（软信号；讲话稿 / 随笔 / 自媒体请传 --genre G2/G6/G7 豁免）${NC}\n" "$WERON"
+            grep -nE "$WERON_RE" "$FILE" | head -3 | sed 's/^/    /'
+            WARNINGS=$((WARNINGS + 1))
+            inc_section "s16" "$WERON"
+        else
+            printf "  ${GRN}✓ §1.6.5 拟人化集体代词 = 0${NC}\n"
+        fi ;;
+esac
 echo
 
 # ----------------------------------------------------------
@@ -616,8 +719,8 @@ else
     printf "  ${GRN}✓ §1.7.1 Reference markup bugs = 0${NC}\n"
 fi
 
-# §1.7.2 Placeholder dates
-PLACEHOLDER_DATE="20[0-9][0-9]-xx-xx|XXXX-XX-XX|\\{\\{access-date\\|.*xx-xx"
+# §1.7.2 Placeholder dates + 错误文号占位（v8.0 从 scan-hard-gate H2.1 端口，合并前唯一独有检查）
+PLACEHOLDER_DATE="20[0-9][0-9]-xx-xx|XXXX-XX-XX|\\{\\{access-date\\|.*xx-xx|〔YYYY〕|〔xxx〕|（待补文号）"
 PLACEHOLDER_COUNT=$(count_pattern "$PLACEHOLDER_DATE" "$FILE")
 if [ "$PLACEHOLDER_COUNT" -gt 0 ]; then
     printf "  ${RED}✗ §1.7.2 Placeholder dates: %d 处${NC}\n" "$PLACEHOLDER_COUNT"

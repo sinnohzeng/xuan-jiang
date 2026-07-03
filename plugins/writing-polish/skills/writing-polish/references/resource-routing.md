@@ -1,7 +1,9 @@
-# Resource Routing —— 完整资源路由表
+# Resource Routing：完整资源路由表
 
-> Load when：SKILL.md §5 mode 必读资源不够、需要查「某场景该读哪个 references」时。
+> **命中即整读本文件、勿 head 预览**（这是 hub 索引，截断读会漏 load-when 判据）。
+> Load when：SKILL.md §5 mode 必读资源不够、需要查“某场景该读哪个 references”时。
 > SSOT：本文件；SKILL.md §5 是 mode 级 cached mirror（3 行 × 3 mode）。
+> 说明：SKILL.md §5 已把 Polish 每次必用的 `revision-checklist.md` / `logic-and-structure.md` 直链提到一跳，本表为长尾全量索引。
 
 ## §1 references/ 按 load-when 查表
 
@@ -13,8 +15,8 @@
 | [`revision-checklist.md`](revision-checklist.md) | polish | step 3 修改阶段决策依据 |
 | [`genre-guide.md`](genre-guide.md) §<X> | all | 体裁判断后读对应章节 |
 | [`writing-methodology.md`](writing-methodology.md) | coach, polish | Coach 准备 + 立意/结构/材料 焦点判依据来源 |
-| [`writing-coaching-arc.md`](writing-coaching-arc.md) | coach | 「教我写作 / 练笔」技能弧（摹仿→制造→创造） |
-| [`peer-vs-self-revision.md`](peer-vs-self-revision.md) | polish, reviewer | 「他批」语气，reviewer 子代理与主对话改稿阶段必守 |
+| [`writing-coaching-arc.md`](writing-coaching-arc.md) | coach | “教我写作 / 练笔”技能弧（摹仿→制造→创造） |
+| [`peer-vs-self-revision.md`](peer-vs-self-revision.md) | polish, reviewer | “他批”语气，reviewer 子代理与主对话改稿阶段必守 |
 | [`logic-and-structure.md`](logic-and-structure.md) | polish | 结构与论据 焦点判依据 |
 | [`gongwen-format.md`](gongwen-format.md) | polish 公文 | 体裁 = 规范公文 时读 |
 | [`citation-spec.md`](citation-spec.md) | polish 调研 | 体裁 = 调研报告 / 材料·事实焦点判模糊归因 |

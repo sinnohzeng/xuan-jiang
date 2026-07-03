@@ -4,6 +4,41 @@ All notable changes to xuan-jiang `writing-polish` skill are documented here. Fo
 
 > 历史段按当时状态记录，**不代表当前文件仍存在**（如 v5.x 的 `prompts/multi-agent/`、`config/default.yaml`、v6.x 的 `prompts/reviewer.md` / 0-3 评分链均已在后续版本移除或下沉离线）。当前状态以 `README.md` / `docs/status.md` / `SKILL.md` 为准。
 
+## [8.0.0]（2026-07-03）零历史包袱重构：单引擎 scan + 声音匹配 + 事实第四态 + 全站标点 dogfood
+
+> 调研（官方 best-practices + 社区技能）→ 计划 v1（R1/R2/R3 三轮 clean-context 评审收敛到 v4）→ 八工作流实现（WS-1 至 WS-8）→ WS-1 与 prose WS 各一轮对抗评审 → 迭代。全程 clean-context 反推、机器可核项一律脚本复核。
+
+### ⚠️ Breaking
+
+- **scan 单引擎**：CI 硬闸从独立的 `scan-hard-gate.sh` 改为 `scan-ai-taste.sh --genre base --json`（base profile = 无体裁豁免、保留 context 语境白名单）。`scan-hard-gate.sh` 删除，其唯一独有检查（H2.1 错误文号占位 `〔YYYY〕`/`（待补文号）`）端口进 scan。
+- **scan-output 契约版本** `7.0 → 8.0`（`scan-ai-taste.sh` + `schemas/scan-output.schema.json` const 同步）；`--json` 新增可选 `violations` 数组（`rule`/`severity`/`line`/`matched` 结构化命中，弃 stdout 反解析）。
+- **误报降级**：`不是…而是`/`让我们`/路标词从零容忍红线降为**软 WARN（exit 2）不 FAIL**；讲话稿（G2）对 `让我们`、随笔（G6）对低频 `不是…而是` 显式豁免。红线只保留跨体裁无歧义字面残留。
+- **否定平行结构同一性判断下沉 L3 reviewer**：L1 只做同段块内**字面**否定平行 ≥3 次的可数代理（`不是.{1,15}?而是` 惰性量词，命中只 WARN 不 FAIL），语义同构判断交 reviewer。G8 单次 `不仅…更是` 由 L1 硬判改 L3 语义捕获，Example H 措辞由“必扣”软化为“L3 应判为要改”。
+- **Rollback**：`git checkout` v7.0.1 tag。
+
+### Added
+
+- **声音匹配**（`references/voice-matching.md` + SKILL §2.5）：门控仅 G6 随笔 / G7 自媒体（公文报告的“声音”是体裁规范、非个人声纹）。tier-1 即时六维观察不落盘；tier-2 可选画像落**用户自己项目仓** `.writing-voice/<genre>.md`（插件不携带声纹、不向量化）。核心认知“不像 AI ≠ 像我”，声音层不覆盖任何红线。
+- **触发 / 路由校准 harness**（`evals/trigger-calibration.md`）：技能调用轴（should-fire / should-not-fire）+ mode 路由轴 + G8 reviewer 判词稳定性抽检，**人在环手动跑**（技能唤起是非确定性决策，自动测只会 bit-rot）。
+- **constitution 实质轴锐化**：空话可证伪测试（换主语仍成立 = 空话，豁免政治表态 boilerplate）；事实敬畏**第四态**（推断 / 预测就地标前提）；**无声**（抹平作者声音，仅 G6/G7 失败）与**无菌**（去 AI 味丢具体数字专名变空泛，全体裁失败）双态；So-What 收口（收窄到问题 / 研究类调研 + 汇报 + 议论评论，豁免情况类调研 + 抒情随笔，G6 内按子类型判）；非目标（别优化 AI 检测器）；§7 运行时护栏（勿把 Polish 套 `/loop`）；§7.1 评审独立性（锚本不进 reviewer、上轮不喂）；§7.2 理性化陷阱。
+- **回归 fixture** `evals/fixtures/neg-parallel-dense.md`：锁 DoD#2(c)（同段紧挨 3 连否定平行在 base 触发 WARN、exit 2）。
+
+### Changed
+
+- **Polish Protocol（SKILL §2.2）回归守卫式迭代**：step 3 有序单维 sweep（达意 → 空话 → 结构 → 标点，深度按稿长分档、独立于 mode 路由表）；reviewer 同一轮内只 spawn 一次覆盖全焦点，跨轮回到 step 2 重 spawn 携改后稿产出新 verdict（最多 2 轮）；step 2.0 字数闸（< 500 字明示润色可省 reviewer）；step 2.5 missing-review 终态（不进自动改稿、上报用户）。
+- **description 补 CN 热词触发器**：`去 AI 味`/`AI 感`/`这段读着像 AI 写的`/`帮我去味`/`DOCX 修订`。
+- **manifest description 去 changelog 化**：`plugin.json` + `marketplace.json` 两处换简洁用户向文案、去版本戳、两处一致；version SSOT 收敛到 `plugin.json`，marketplace 删冗余 version / keywords 字段。
+- **writing-reviewer 子代理**：`tools: Read, Grep`（核实运行时不调 Bash）+ 显式 `model: opus`（审稿质量与写作会话解耦）；同步第四态 / 无声无菌 / 润色不新增事实 diff 守卫。
+- **引用拍平 + TOC**：`revision-checklist.md` / `logic-and-structure.md` 提到 SKILL §5 一跳直链；`failure-cases.md` / `peer-vs-self-revision.md` / `writing-coaching-arc.md` 补 `## 目录`。
+- **eval-record schema**：`version` 枚举加 `8.0`，`genre` 枚举对齐 constitution §0 精确中文名。
+- **全站标点 dogfood**：技能自写的**规约散文**（SKILL / constitution / reviewer / 各 reference 与 eval README / 新建 harness）统一 GB/T 15834 弯引号、零破折号、无直角引号；面向用户的文案模板与输出样例同守。**豁免边界**（有意为之、非债）：`anti-ai-taste-anchors.md` / `ai-taste-examples.md` / `failure-cases.md` / `llm-judge-research-report.md` 是禁用样式目录与官方公文逐字引文，必须陈列破折号 / ASCII 引号作教学反例；`renzhongran-coverage-matrix.md` 整档 `scan-skip`；表格 N/A 单元格 `| — |` 与引例 blockquote 内的破折号是结构 / 陈列用途。
+
+### Fixed
+
+- **贪婪量词少计密集排比**（clean-context 评审逮出的 blocker）：`不是.{1,15}而是` 贪婪版会把同段紧挨的第二处否定平行吞并，使 3 连排比只计 2、漏触 WARN。改惰性量词 `.{1,15}?`，shell 端 `NEG_PARALLEL_RE` 与 python 端同步。
+- **`--genre` 末位缺值死循环**：`--genre`（或 `--target`/`--log-to`）作末位参数漏带值时 `shift 2` 在 bash 3.2 越界不移位、`while $#>0` 恒真挂死。改 `shift; [ $# -gt 0 ] && shift`。
+- **prose WS 对抗评审 12 findings 全迭代**：含 2 MAJOR（< 500 字 Polish 路径歧义、多轮迭代缺 reviewer 重跑）+ So-What G6 双归类 + 悬空 §7.7 交叉引用 + steelman 焦点未定义 + 无来源量化断言（`3/10→8/10` 降为定性）等。
+
 ## [7.0.1] — 2026-06-06（修复 install-blocking manifest）
 
 ### Fixed

@@ -4,6 +4,15 @@
 >
 > 相关文件：[anti-ai-taste-anchors.md](./anti-ai-taste-anchors.md)（规则定义）、[ai-taste-examples.md](./ai-taste-examples.md)（反例对照）、[citation-spec.md](./citation-spec.md)（模糊归因专题）。
 
+## 目录
+
+- 案例 1：戏剧化叙事 + 大厂黑话叠加
+- 案例 2：模糊归因 + 数据缺失
+- 案例 3：frontmatter 列举禁用词被 scan 误报
+- 案例 4：客服腔段尾
+- 案例 5：标题层级与水平线滥用
+- 通用归纳
+
 ## 案例 1：戏剧化叙事 + 大厂黑话叠加
 
 ### 原文（来自 README v3.1 草稿）

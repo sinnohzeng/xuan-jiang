@@ -9,7 +9,7 @@
   "properties": {
     "version": {
       "type": "string",
-      "const": "7.0",
+      "const": "8.0",
       "description": "Schema version, bumps on break change"
     },
     "file": {
@@ -68,6 +68,21 @@
     "human_readable_output": {
       "type": "string",
       "description": "Full stdout of the standard-mode scan, for cases when main session wants detail beyond the summary"
+    },
+    "violations": {
+      "type": "array",
+      "description": "v8.0 evidence spans (line-level only; char-column deferred as CJK byte≠char-col). One entry per flagged line, grouped implicitly by rule. Empty array when no violations/warnings.",
+      "items": {
+        "type": "object",
+        "required": ["rule", "severity", "line", "matched"],
+        "additionalProperties": false,
+        "properties": {
+          "rule": {"type": "string", "description": "Rule name as shown in the ✗/⚠ header, e.g. 破折号 / 否定平行段内密集"},
+          "severity": {"type": "string", "enum": ["red", "soft"], "description": "red=hard red-line (exit 1), soft=WARN (exit 2)"},
+          "line": {"type": "integer", "minimum": 1, "description": "1-indexed line in the original draft (scan-skip preprocessing keeps a 1:1 line mapping)"},
+          "matched": {"type": "string", "description": "The matched line content (may be truncated for display)"}
+        }
+      }
     }
   }
 }

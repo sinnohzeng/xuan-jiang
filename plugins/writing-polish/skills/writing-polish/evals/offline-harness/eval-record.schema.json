@@ -9,7 +9,7 @@
   "properties": {
     "version": {
       "type": "string",
-      "enum": ["6.0", "6.1"]
+      "enum": ["6.0", "6.1", "8.0"]
     },
     "model": {
       "type": "string",
@@ -26,8 +26,8 @@
     },
     "protocol": {
       "type": "string",
-      "enum": ["v5.1", "v6.0", "v6.1"],
-      "description": "Which polish protocol produced this record; used for cross-version comparison. v6.1 = 0-3 scale + L3 mandatory + L2 trace-file留痕"
+      "enum": ["v5.1", "v6.0", "v6.1", "v8.0"],
+      "description": "Which polish protocol produced this record; used for cross-version comparison. v6.1 = 0-3 scale + L3 mandatory + L2 trace-file留痕；v8.0 = per-use 自然语言反馈 + 粗判（不打数值分），scan 软信号下沉 reviewer"
     },
     "mode": {
       "type": "string",
@@ -35,7 +35,8 @@
     },
     "genre": {
       "type": "string",
-      "enum": ["规范公文", "讲话稿", "调研报告", "述职报告", "汇报发言稿", "随笔杂文", "自媒体", "咨询报告", "其他"]
+      "description": "v8.0 起对齐 constitution §0 G1-G8 精确名串（G1-G8 + 其他）",
+      "enum": ["规范性公文", "领导讲话稿", "调研报告", "述职报告", "汇报稿和发言稿", "随笔杂文", "自媒体写作", "第三方咨询报告", "其他"]
     },
     "scan_summary": {
       "type": "object",

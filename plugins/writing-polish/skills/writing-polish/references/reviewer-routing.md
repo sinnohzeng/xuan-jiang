@@ -1,8 +1,8 @@
-# Reviewer Routing —— 焦点覆盖按长度/体裁分摊 SSOT
+# Reviewer Routing：焦点覆盖按长度/体裁分摊 SSOT
 
 > Load when：SKILL.md §2.2 step 2 主对话决定 spawn 几个 writing-reviewer、各自分哪些焦点时。
 > automation-level: `claude-code-session-only`（决策表，无脚本消费）。
-> v7.0 起：reviewer 返回自然语言反馈 + verdict（不打数值分）；路由按「焦点覆盖」而非「5 维打分」分摊。
+> v7.0 起：reviewer 返回自然语言反馈 + verdict（不打数值分）；路由按“焦点覆盖”而非“5 维打分”分摊。
 
 ## §1 决策表（mode × 体裁 × 长度 → reviewer 数与焦点）
 
@@ -17,7 +17,7 @@
 
 **多条件叠加**：取所有命中场景的焦点并集，去重；同焦点多次命中只 spawn 1 个 reviewer。
 
-**并发上限 3**（旧版 v6 是 5——彼时一维一 reviewer；v7 焦点比维度宽，3 个即可全覆盖四焦点）。
+**并发上限 3**（旧版 v6 是 5：彼时一维一 reviewer；v7 焦点比维度宽，3 个即可全覆盖四焦点）。
 
 ## §2 体裁判定锚点（用 ±2 行扩窗）
 
@@ -49,4 +49,4 @@
 - 用 Task 工具 spawn [`../../agents/writing-reviewer.md`](../../agents/writing-reviewer.md)，任务 prompt 注入：draft 全文 + 该 reviewer 的 focus 列表 + `constitution.md` 对应体裁切片 + 当前日期 + 项目豁免清单（§3/§4 cicpa 例外）。
 - 每 spawn 一行可见 `[spawn writing-reviewer focus=立意+结构]`；返回时 `[verdict=要改 ✓]`。
 - 失败 retry **1 次**（2s 退避）；2 次仍失败记 `missing-review: focus=<X>`（不静默降级 = fix-the-tool-don't-fallback）。
-- reviewer 返回 `<feedback>`（按焦点分组）+ `<verdict>够好了|要改|红线未清</verdict>`；主对话据 verdict 决定是否再走一轮 step 3（红线未清 / 实质类「要改」才再修）。
+- reviewer 返回 `<feedback>`（按焦点分组）+ `<verdict>够好了|要改|红线未清</verdict>`；主对话据 verdict 决定是否再走一轮 step 3（红线未清 / 实质类“要改”才再修）。
