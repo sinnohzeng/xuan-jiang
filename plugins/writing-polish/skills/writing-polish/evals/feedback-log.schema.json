@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "feedback-log-v9.0",
+  "title": "Writing Polish Feedback Log",
+  "type": "object",
+  "properties": {
+    "timestamp": { "type": "string", "format": "date-time" },
+    "mode": { "type": "string", "enum": ["polish", "express", "coach"] },
+    "genre": { "type": "string", "enum": ["G1","G2","G3","G4","G5","G6","G7","G8"] },
+    "persona": { "type": "string", "enum": ["gov-writer","business-writer","content-creator"] },
+    "char_count": { "type": "integer" },
+    "red_line_violations_before": { "type": "integer" },
+    "red_line_violations_after": { "type": "integer" },
+    "reviewer_verdict": { "type": "string", "enum": ["够好了","要改","红线未清"] },
+    "feedback": { "type": "string", "enum": ["很有用","部分有用","没用"] },
+    "changes_accepted_ratio": { "type": "number", "minimum": 0, "maximum": 1 }
+  },
+  "required": ["timestamp", "mode", "feedback"]
+}

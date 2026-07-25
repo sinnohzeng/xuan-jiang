@@ -46,7 +46,17 @@
 
 ## §4 spawn 与 fail handling
 
-- 用 Task 工具 spawn [`../../agents/writing-reviewer.md`](../../agents/writing-reviewer.md)，任务 prompt 注入：draft 全文 + 该 reviewer 的 focus 列表 + `constitution.md` 对应体裁切片 + 当前日期 + 项目豁免清单（§3/§4 cicpa 例外）。
+- 用 Task 工具 spawn [`../agents/writing-reviewer.md`](../agents/writing-reviewer.md)，任务 prompt 注入：draft 全文 + 该 reviewer 的 focus 列表 + `constitution.md` 对应体裁切片 + 当前日期 + 项目豁免清单（§3/§4 cicpa 例外）。
 - 每 spawn 一行可见 `[spawn writing-reviewer focus=立意+结构]`；返回时 `[verdict=要改 ✓]`。
 - 失败 retry **1 次**（2s 退避）；2 次仍失败记 `missing-review: focus=<X>`（不静默降级 = fix-the-tool-don't-fallback）。
 - reviewer 返回 `<feedback>`（按焦点分组）+ `<verdict>够好了|要改|红线未清</verdict>`；主对话据 verdict 决定是否再走一轮 step 3（红线未清 / 实质类“要改”才再修）。
+
+## Express 模式路由（v9.0 新增）
+
+Express 模式不 spawn reviewer（快速改稿场景，成本优先）。主对话自行完成：
+1. L1 scan（`scan-ai-taste.sh`）
+2. 据 `positive-chinese-guide.md` 做正向检查（翻译腔四族 + 正向思维）
+3. 单轮改稿
+4. 重跑 scan 验证
+
+适用：< 300 字或用户明确触发“快速改/顺一下”。

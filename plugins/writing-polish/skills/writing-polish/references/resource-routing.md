@@ -30,7 +30,7 @@
 
 | 资源 | scope | load when |
 |---|---|---|
-| [`../../agents/writing-reviewer.md`](../../agents/writing-reviewer.md) | polish | step 2 用 Task spawn 的 clean-context reviewer 子代理（返回 NL 反馈 + verdict，只评不改） |
+| [`../agents/writing-reviewer.md`](../agents/writing-reviewer.md) | polish | step 2 用 Task spawn 的 clean-context reviewer 子代理（返回 NL 反馈 + verdict，只评不改） |
 
 ## §3 scripts/ 路由（per-use）
 

@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# scan-ai-taste.sh —— writing-polish v8.0 L1 hard gate
+# scan-ai-taste.sh —— writing-polish v9.0 L1 hard gate
 #
 # 角色：交付前 AI 味自检（L1 硬扫）+ JSON 输出供主对话 / writing-reviewer 路由决策。
 # 在交付任何修改稿前必跑。任何硬约束未达标，禁止交付。
+#
+# v9.0 白熊效应治理：精简硬红线 ~40 条（删除英文词汇红线、低频近义变体），
+#   软信号下沉 reviewer NL 判断，保留上下文白名单 + 句长方差 + 结构检测。
 #
 # 用法：
 #   bash scan-ai-taste.sh <file.md>                                # 标准扫描（人类可读）
@@ -18,9 +21,9 @@
 #   2  软阈值违规，建议重写但非阻断
 #   3  使用错误（缺参数 / 文件不存在）
 #
-# JSON 契约：schemas/scan-output.schema.json
+# JSON 契约：assets/scan-output.schema.json
 # 日志契约：evals/offline-harness/eval-record.schema.json（离线 dev-eval）
-# 规则定义：references/anti-ai-taste-anchors.md（230+ 条 SSOT，编号一一对应）
+# 规则定义：references/anti-ai-taste-anchors.md（~80 条 SSOT，v9.0 精简版）
 
 set -uo pipefail
 
@@ -57,8 +60,7 @@ if [ ! -f "$FILE" ]; then
     exit 3
 fi
 
-# capture stdout into a buffer when JSON mode or --log-to is set.
-# emit_results_on_exit (trap EXIT) parses the buffer and emits JSON / appends log line.
+# capture stdout into buffer when JSON mode or --log-to is set
 if [ "$MODE" = "json" ] || [ -n "$LOG_TO" ]; then
     JSON_BUF=$(mktemp)
     exec 3>&1
@@ -138,7 +140,7 @@ draft_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
 
 if mode == 'json':
     result = {
-        "version": "8.0",
+        "version": "9.0",
         "file": os.path.abspath(file_path),
         "draft_hash": draft_hash,
         "exit_code": exit_code,
@@ -163,10 +165,10 @@ if log_to:
         os.makedirs(log_dir, exist_ok=True)
     final_action = "passed" if exit_code == 0 else ("fixed" if exit_code == 2 else "rolled_back")
     log_entry = {
-        "version": "8.0",
+        "version": "9.0",
         "timestamp": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         "draft_hash": draft_hash,
-        "protocol": "v8.0",
+        "protocol": "v9.0",
         "mode": "audit",
         "scan_summary": {
             "red_line_violations_total": red_total,
@@ -186,11 +188,7 @@ PYEOF
 }
 trap emit_results_on_exit EXIT
 
-# 预处理：豁免 <!-- scan-skip --> 至 <!-- /scan-skip --> 之间的段落
-# 元论述（规则定义、错误对照、引用违规词举例）专用
-# 同时跳过 YAML frontmatter（开头 --- 至下一个 ---），因为 YAML 段
-# 内不能用 HTML 注释，且 SKILL.md frontmatter description 必然
-# 列举触发词作为元论述。
+# 预处理：豁免 scan-skip 注释块 + YAML frontmatter
 ORIG_FILE="$FILE"
 SCAN_TMP=$(mktemp -t scan-ai-taste.XXXXXX.md)
 # SCAN_TMP cleanup is handled by emit_results_on_exit (trap EXIT set earlier)
@@ -215,7 +213,7 @@ fi
 VIOLATIONS=0
 WARNINGS=0
 # 分组密度统计：用普通变量避免 macOS bash 3.2 不支持 declare -A
-SC_s11=0; SC_s12=0; SC_s13=0; SC_s14=0; SC_s15=0; SC_s16=0; SC_s17=0
+SC_s11=0; SC_s13=0; SC_s14=0; SC_s15=0; SC_s16=0; SC_s17=0
 
 # 分组累加器
 inc_section() {
@@ -223,7 +221,6 @@ inc_section() {
     local n="$2"
     case "$sec" in
         s11) SC_s11=$((SC_s11 + n)) ;;
-        s12) SC_s12=$((SC_s12 + n)) ;;
         s13) SC_s13=$((SC_s13 + n)) ;;
         s14) SC_s14=$((SC_s14 + n)) ;;
         s15) SC_s15=$((SC_s15 + n)) ;;
@@ -232,12 +229,9 @@ inc_section() {
     esac
 }
 
-# 安全计数函数：grep -c 在无匹配时正确返回 0
+# 安全计数函数
 count_pattern() {
-    local pattern="$1"
-    local file="$2"
-    local case_insensitive="${3:-}"
-    local result
+    local pattern="$1" file="$2" case_insensitive="${3:-}" result
     if [ "$case_insensitive" = "i" ]; then
         result=$(grep -ciE "$pattern" "$file" 2>/dev/null || true)
     else
@@ -248,9 +242,26 @@ count_pattern() {
     echo "$result"
 }
 
+# 硬红线检查助手：check_red <PATTERN> <FILE> <LABEL> <SECTION> [SUGGEST_KEY]
+check_red() {
+    local pattern="$1" file="$2" label="$3" sec="$4" suggest="${5:-}"
+    local count
+    count=$(count_pattern "$pattern" "$file")
+    if [ "$count" -gt 0 ]; then
+        printf "  ${RED}✗ %s: %d 处${NC}\n" "$label" "$count"
+        grep -nE "$pattern" "$file" | head -5 | sed 's/^/    /'
+        [ -n "$suggest" ] && [ "$MODE" = "suggest" ] && suggest_for "$suggest"
+        VIOLATIONS=$((VIOLATIONS + 1))
+        inc_section "$sec" "$count"
+        return 1
+    else
+        printf "  ${GRN}✓ %s = 0${NC}\n" "$label"
+        return 0
+    fi
+}
+
 # v4.3 上下文感知白名单：词命中后看 ±2 行窗口是否含白名单关键词，含则豁免
-# 用法：count_with_context_whitelist <WORD_REGEX> <WHITELIST_REGEX> <FILE>
-# 返回：被判违规的命中数（总命中 - 落在白名单上下文的命中）
+# 用法：count_with_context_whitelist <WORD> <WHITELIST> <FILE>
 count_with_context_whitelist() {
     local word="$1"
     local whitelist="$2"
@@ -284,7 +295,6 @@ except Exception:
 }
 
 # v4.3 软阈值动态化：按千句密度 ≤ base 计算阈值
-# 短文（< 200 句）= base；中文（200-500）= base*2；长文（500-1000）= base*3；超长（≥1000）= base*5
 threshold_for_length() {
     local base="$1"
     local sents="$2"
@@ -300,25 +310,19 @@ suggest_for() {
     case "$1" in
         dash) echo "    改写：删除破折号，把句子拆成两句或用逗号 / 句号";;
         paren) echo "    改写：把括号内补充独立成句，或用顿号融入正文";;
-        ascii_quote) echo "    改写：替换为大陆国标弯引号 \"\" '' （U+201C / U+201D / U+2018 / U+2019）";;
-        corner_quote) echo "    改写：替换为大陆国标弯引号 \"\" '' ，「」是港台或日式";;
-        math_symbol) echo "    改写：重构整段表述。例：'A + B + C' → 'A、B 和 C 三大要素'，不要机械替换为'和'";;
-        neg_parallel) echo "    改写：把'不是 X 而是 Y'改成直接陈述 Y，或承认观点是判断";;
+        ascii_quote) echo "    改写：替换为大陆国标弯引号 "" '' （U+201C / U+201D / U+2018 / U+2019）";;
+        math_symbol) echo "    改写：重构整段表述。例：'A + B + C' → 'A、B 和 C 三大要素'";;
+        neg_parallel) echo "    改写：把'不是 X 而是 Y'改成直接陈述 Y";;
         cn_hard) echo "    改写：详见 anti-ai-taste-anchors.md §1.1，改成具体动词或事实陈述";;
-        en_hard) echo "    改写：详见 anti-ai-taste-anchors.md §1.2，删修饰留事实";;
         sanduan) echo "    改写：'首先 / 其次 / 最后'改成'一是 / 二是 / 三是'党政公文体例";;
-        drama) echo "    改写：详见 anti-ai-taste-anchors.md §1.5.1，去战斗化叙事";
-               echo "         如确为 IT 实物语境（机房 / 等保 / WAF / 入侵检测 / NGFW），±2 行内含 IT 关键词即可豁免";;
-        jargon) echo "    改写：详见 anti-ai-taste-anchors.md §1.5.2，去大厂黑话";
-                echo "         如确为党政咨询语境（同级对标 / 对标先进 / 对标启示），±2 行内含公文关键词即可豁免";;
-        netspeak) echo "    改写：详见 anti-ai-taste-anchors.md §1.5.3，去网络口语";;
+        drama) echo "    改写：如确为 IT 实物语境（机房 / 等保 / WAF），±2 行内含 IT 关键词即可豁免";;
+        jargon) echo "    改写：如确为党政咨询语境（同级对标 / 对标先进），±2 行内含公文关键词即可豁免";;
         meta) echo "    改写：删除元注释 / 自我介绍 / 免责声明 / 服务话术，直接进入正文";;
-        wp_long) echo "    改写：详见 anti-ai-taste-anchors.md §1.7，清理 AI 工具输出残留";;
+        wp_long) echo "    改写：详见 anti-ai-taste-anchors.md §1.3，清理 AI 工具输出残留";;
     esac
 }
 
-# v8.0 fix-map（首版 top-20 高频黑词逐词替换建议；长尾回退 suggest_for cn_hard 类别建议）
-# 156 词全量推迟——只覆盖实测最高频的一批，给具体替换而非笼统"改成具体动词"
+# 改写建议表（仅在 --suggest-fix 模式下输出）
 fix_word() {
     case "$1" in
         赋能) echo "帮 / 支持 / 让…能" ;;
@@ -327,10 +331,7 @@ fix_word() {
         打造) echo "建 / 做成 / 建成" ;;
         助力) echo "帮 / 推动" ;;
         链路) echo "环节 / 流程" ;;
-        颗粒度) echo "精细程度 / 详略" ;;
         拉通) echo "打通 / 协调" ;;
-        复盘) echo "回顾总结" ;;
-        对齐) echo "统一 / 保持一致" ;;
         深度融合) echo "深度结合" ;;
         提质增效) echo "提高质量和效率" ;;
         多维度) echo "多方面 / 从几个角度" ;;
@@ -338,15 +339,12 @@ fix_word() {
         跨界融合) echo "跨领域结合" ;;
         重塑) echo "重新调整 / 重建" ;;
         切实推动) echo "推动 / 抓落实" ;;
-        令人印象深刻) echo "值得记住 / 有说服力" ;;
-        至关重要) echo "很重要 / 关键" ;;
-        综上所述) echo "删除，直接给结论" ;;
         *) return 1 ;;
     esac
 }
 
 echo "================================================"
-echo "       AI 味红线扫描 v8.0"
+echo "       AI 味红线扫描 v9.0"
 echo "       文件：$FILE"
 [ "$MODE" = "suggest" ] && echo "       模式：建议改写"
 echo "================================================"
@@ -356,28 +354,8 @@ echo
 # §1.4 标点红线（必须 = 0）
 # ----------------------------------------------------------
 echo "▼ §1.4 标点红线（阈值 = 0）"
-DASH=$(count_pattern "——|—|――|―" "$FILE")
-PAREN=$(count_pattern "（如|（即|（也就是说" "$FILE")
-
-if [ "$DASH" -gt 0 ]; then
-    printf "  ${RED}✗ 破折号: %d 处${NC} (须 = 0)\n" "$DASH"
-    grep -nE '——|—|――|―' "$FILE" | head -5 | sed 's/^/    /'
-    [ "$MODE" = "suggest" ] && suggest_for dash
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s14" "$DASH"
-else
-    printf "  ${GRN}✓ 破折号 = 0${NC}\n"
-fi
-
-if [ "$PAREN" -gt 0 ]; then
-    printf "  ${RED}✗ 括号内补充: %d 处${NC} (须 = 0)\n" "$PAREN"
-    grep -nE '（如|（即|（也就是说' "$FILE" | head -5 | sed 's/^/    /'
-    [ "$MODE" = "suggest" ] && suggest_for paren
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s14" "$PAREN"
-else
-    printf "  ${GRN}✓ 括号内补充 = 0${NC}\n"
-fi
+check_red "——|—|――|―" "$FILE" "破折号" "s14" "dash" || true
+check_red "（如|（即|（也就是说" "$FILE" "括号内补充" "s14" "paren" || true
 
 # §1.4.111-113 中文标点与中英混排（外置 python 检测器，分项报告）
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -401,30 +379,19 @@ while IFS= read -r line; do
     fi
 done <<< "$QUOTE_OUTPUT"
 
-# §1.4.114 每段加粗冒号开头（v4.2 新增）
-BOLDCOLON=$(count_pattern '\*\*[^*]{1,8}：\*\*|\*\*重点\*\*|\*\*关键\*\*|\*\*注意\*\*|\*\*核心要点\*\*' "$FILE")
-if [ "$BOLDCOLON" -gt 0 ]; then
-    printf "  ${RED}✗ §1.4.114 每段加粗冒号开头: %d 处${NC}\n" "$BOLDCOLON"
-    grep -nE '\*\*[^*]{1,8}：\*\*' "$FILE" | head -3 | sed 's/^/    /'
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s14" "$BOLDCOLON"
-else
-    printf "  ${GRN}✓ §1.4.114 每段加粗冒号开头 = 0${NC}\n"
-fi
+# §1.4.114 每段加粗冒号开头
+check_red '\*\*[^*]{1,8}：\*\*|\*\*重点\*\*|\*\*关键\*\*|\*\*注意\*\*|\*\*核心要点\*\*' "$FILE" "每段加粗冒号开头" "s14" || true
 
 echo
 
 # ----------------------------------------------------------
 # §1.3 句式红线（必须 = 0）
 # ----------------------------------------------------------
-# §1.3 句式软信号：否定平行 / 如果说…那么 是语境判断题（讲话稿 / 随笔的排比是正当修辞），
-# L1 不做零容忍硬判——仅当"同一自然段块内字面否定平行 ≥3 次"才软 WARN（N=3 启发式，WARN-only），
-# 低密度单/双处下沉 L3 reviewer 语义判定。G8 咨询报告单次否定平行亦由 reviewer 捕获（constitution §5 Example H）。
-echo "▼ §1.3 句式软信号（否定平行 / 如果说…那么，下沉 L3 reviewer）"
+# §1.3 句式软信号：否定平行段内 ≥3 次才软 WARN，低密度下沉 reviewer
+echo "▼ §1.3 句式软信号（否定平行，下沉 L3 reviewer）"
 NEG_PARALLEL_RE="不是.{1,15}?而是|不仅.{1,15}?更是|不只是.{1,15}?而是|并非.{1,15}?而是|与其说.{1,10}?不如说"
 NEG_TOTAL=$(count_pattern "$NEG_PARALLEL_RE" "$FILE")
-# per-block 最大密度（新原语，非复用 threshold_for_length 全文密度）：按空行切段，
-# 标题行 / 列表项各自成块（防跨块虚高）；在 scan-skip 预处理后的正文上做。
+# per-block 最大密度：按空行切段，标题行 / 列表项各自成块
 NEG_BLOCK_MAX=$(python3 - "$FILE" <<'PYEOF'
 import re, sys
 try:
@@ -459,21 +426,14 @@ else
     printf "  ${GRN}✓ 否定平行结构 = 0${NC}\n"
 fi
 
-RUOSHUO=$(count_pattern "如果说.{1,5}那么" "$FILE")
-if [ "$RUOSHUO" -gt 0 ]; then
-    printf "  ${YEL}⚠ 如果说...那么...: %d 处（软信号，下沉 reviewer）${NC}\n" "$RUOSHUO"
-    WARNINGS=$((WARNINGS + 1))
-    inc_section "s13" "$RUOSHUO"
-else
-    printf "  ${GRN}✓ 如果说...那么... = 0${NC}\n"
-fi
+# “如果说…那么” v9.0 下沉 reviewer，不再 L1 检测
 echo
 
 # ----------------------------------------------------------
-# §1.1 中文词汇红线（核心 50 条，阈值 = 0）
+# §1.1 中文词汇红线（核心 15 条，阈值 = 0）
 # ----------------------------------------------------------
-echo "▼ §1.1 中文词汇红线（阈值 = 0）"
-CN_HARD="赋能|重塑|闭环|抓手|链路|打造|助力|切实推动|深度融合|多维度|体系化|话语建构|跨界融合|提质增效|接住|托住|共情|看见你|令人印象深刻|令人惊叹|不可或缺|至关重要|独树一帜|蓬勃发展|熠熠生辉|经久不衰|在某种意义上说|不可磨灭的|可谓是|值得注意的是|值得一提的是|不难发现|不难看出|综上所述|由此可见|本质上|更深层次|需要指出的是|必须强调的是|不可否认的是|业内人士指出|相关研究表明|大量实践证明|普遍认为"
+echo "▼ §1.1 中文词汇红线（核心 15 条，阈值 = 0）"
+CN_HARD="赋能|重塑|深度融合|闭环|抓手|链路|打造|助力|切实推动|多维度|体系化|话语建构|跨界融合|提质增效|拉通"
 CN_RAW=$(grep -oE "$CN_HARD" "$FILE" 2>/dev/null || true)
 CN_COUNT=$(echo "$CN_RAW" | grep -c . 2>/dev/null || true)
 CN_COUNT=$(echo "$CN_COUNT" | head -1 | tr -d ' \n\r')
@@ -484,7 +444,7 @@ if [ "$CN_COUNT" -gt 0 ]; then
     grep -nE "$CN_HARD" "$FILE" | head -10 | sed 's/^/    /'
     if [ "$MODE" = "suggest" ]; then
         suggest_for cn_hard
-        # v8.0 fix-map：对命中的高频黑词给逐词替换（top-20 覆盖，长尾回退上面的类别建议）
+        # 逐词替换建议
         for w in $(echo "$CN_RAW" | sort -u); do
             rep=$(fix_word "$w") && printf "      %s → %s\n" "$w" "$rep"
         done
@@ -497,39 +457,10 @@ fi
 echo
 
 # ----------------------------------------------------------
-# §1.2 英文词汇红线（v4.2 扩到 50 条）
-# ----------------------------------------------------------
-echo "▼ §1.2 英文词汇红线（阈值 = 0）"
-EN_HARD="\\bdelve\\b|\\btapestry\\b|\\btestament\\b|\\bunderscore\\b|\\bpivotal\\b|\\bintricate\\b|\\bnuanced\\b|\\bvibrant\\b|\\bshowcase\\b|\\bfoster\\b|\\bmultifaceted\\b|\\bmeticulous\\b|\\bseamless\\b|\\bfurthermore\\b|\\bmoreover\\b|in conclusion|it'?s worth noting|\\bin essence\\b|at its core|game-changer|paradigm shift|\\bboasts\\b|\\bbolstered\\b|\\bgarner\\b|embark on|dive deeper|\\binterplay\\b|\\bconcrete\\b evidence|\\btangible\\b|\\bleverage\\b|\\bstreamline\\b|cutting-edge|state-of-the-art|groundbreaking|transformative|\\bharness\\b|\\bcatalyze\\b|usher in"
-EN_RAW=$(grep -oiE "$EN_HARD" "$FILE" 2>/dev/null || true)
-EN_COUNT=$(echo "$EN_RAW" | grep -c . 2>/dev/null || true)
-EN_COUNT=$(echo "$EN_COUNT" | head -1 | tr -d ' \n\r')
-[ -z "$EN_COUNT" ] && EN_COUNT=0
-
-if [ "$EN_COUNT" -gt 0 ]; then
-    printf "  ${RED}✗ 英文红线词命中: %d 处${NC}\n" "$EN_COUNT"
-    grep -niE "$EN_HARD" "$FILE" | head -10 | sed 's/^/    /'
-    [ "$MODE" = "suggest" ] && suggest_for en_hard
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s12" "$EN_COUNT"
-else
-    printf "  ${GRN}✓ 英文红线词命中 = 0${NC}\n"
-fi
-echo
-
-# ----------------------------------------------------------
 # §1.1 三段式套壳（阈值 = 0）
 # ----------------------------------------------------------
-echo "▼ §1.1 三段式套壳（阈值 = 0）"
-SANDUAN=$(count_pattern "首先.{0,30}其次.{0,30}(最后|再者|然后|最终)" "$FILE")
-if [ "$SANDUAN" -gt 0 ]; then
-    printf "  ${RED}✗ 首先...其次...最后: %d 处${NC}\n" "$SANDUAN"
-    [ "$MODE" = "suggest" ] && suggest_for sanduan
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s11" "$SANDUAN"
-else
-    printf "  ${GRN}✓ 首先...其次...最后 = 0${NC}\n"
-fi
+echo "▼ 三段式套壳（阈值 = 0）"
+check_red "首先.{0,30}其次.{0,30}(最后|再者|然后|最终)" "$FILE" "首先...其次...最后" "s11" "sanduan" || true
 echo
 
 # ----------------------------------------------------------
@@ -563,68 +494,45 @@ check_density "这一" "$ZHEYI" "$ZHEYI_THRESH"
 echo
 
 # ----------------------------------------------------------
-# §1.5 戏剧化偏好 / 互联网大厂黑话 / 网络口语
+# §1.5 上下文白名单检测（硬红线 + 白名单豁免）
 # ----------------------------------------------------------
-echo "▼ §1.5 戏剧化 / 大厂黑话 / 网络口语（阈值 = 0）"
+echo "▼ §1.5 上下文白名单检测（防火墙 IT 语境 / 对标党政语境）"
 
-# §1.5.1 战斗化 / 戏剧化叙事（v4.3 防火墙拆出走 IT 上下文白名单）
-DRAMA_GENERIC="三件武器|三大武器|杀手锏|撒手锏|三层防御|多重防御|立体防御|闸门|自动闸门|兜底闸门|战场|主战场|阵地|武器化|装备化|装上一套|加装一套|跑通|走通|起飞|吐文字|吐结果|喷出|蹦出|王炸|大招|终极武器|杀招|打怪升级|通关"
-# IT 实物语境白名单：等保 / 网络架构 / 设备类别 / 部署语句
+# §1.5.1 防火墙：IT 实物语境白名单豁免，非 IT 语境仍为硬红线
 DRAMA_IT_WHITELIST="机房|等保|GB/T 22239|服务器|端口|协议|入侵检测|网络架构|网络分区|网络边界|访问控制|安全组|子网|VPC|VPN|路由|交换机|WAF|Web 应用|UTM|IDS|IPS|NGFW|部署.{0,5}台|配置规则|防护设备|安全设备|网络安全|数据中心|云服务|裸金属"
 FW_DRAMA=$(count_with_context_whitelist "防火墙" "$DRAMA_IT_WHITELIST" "$FILE")
-DRAMA_COUNT=$(count_pattern "$DRAMA_GENERIC" "$FILE")
-DRAMA_COUNT=$((DRAMA_COUNT + FW_DRAMA))
-DRAMA="$DRAMA_GENERIC|防火墙"  # 仅用于 grep -nE 行号展示
-if [ "$DRAMA_COUNT" -gt 0 ]; then
-    printf "  ${RED}✗ §1.5.1 战斗化叙事: %d 处${NC}\n" "$DRAMA_COUNT"
-    grep -nE "$DRAMA" "$FILE" | head -3 | sed 's/^/    /'
+if [ "$FW_DRAMA" -gt 0 ]; then
+    printf "  ${RED}✗ §1.5.1 防火墙（非 IT 语境）: %d 处${NC}\n" "$FW_DRAMA"
+    grep -nE "防火墙" "$FILE" | head -3 | sed 's/^/    /'
     [ "$MODE" = "suggest" ] && suggest_for drama
     VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s15" "$DRAMA_COUNT"
+    inc_section "s15" "$FW_DRAMA"
 else
-    printf "  ${GRN}✓ §1.5.1 战斗化叙事 = 0${NC}\n"
+    printf "  ${GRN}✓ §1.5.1 防火墙 = 0（或 IT 语境豁免）${NC}\n"
 fi
 
-# §1.5.2 互联网大厂黑话扩展（v4.3 对标拆出走党政 / 咨询语境白名单）
-JARGON_GENERIC="拉通|颗粒度|打法|玩法|沉淀下来|抢占心智|占领心智|用户心智|生态化反|赛道|切赛道|抢赛道|抓总|跑出来|跑通模型|下沉市场|底层逻辑|顶层设计|价值锚点|赛马机制|内部赛马|跑赢大盘|跑赢市场|三件套|组合拳|铁三角|冲业绩"
-# 党政公文 / 咨询语境白名单：政府工作报告 / 党的二十大 / 同级 / 国际先进等
+# §1.5.2 对标：党政咨询语境白名单豁免，纯互联网语境仍为硬红线
 JARGON_GOV_WHITELIST="政府工作报告|党中央|党的二十大|二十届|总书记|讲话精神|对标对表|对标先进|对标一流|对标国际|对标国内|同级|同业|国际先进|行业领先|启示|案例|经验|做法|建设方案|实施方案|发展规划|高质量发展|党建|政治学习|十四五|十五五"
 DB_JARGON=$(count_with_context_whitelist "对标" "$JARGON_GOV_WHITELIST" "$FILE")
-JARGON_COUNT=$(count_pattern "$JARGON_GENERIC" "$FILE")
-JARGON_COUNT=$((JARGON_COUNT + DB_JARGON))
-JARGON="$JARGON_GENERIC|对标"  # 仅用于 grep -nE 行号展示
-if [ "$JARGON_COUNT" -gt 0 ]; then
-    printf "  ${RED}✗ §1.5.2 互联网大厂黑话: %d 处${NC}\n" "$JARGON_COUNT"
-    grep -nE "$JARGON" "$FILE" | head -3 | sed 's/^/    /'
+if [ "$DB_JARGON" -gt 0 ]; then
+    printf "  ${RED}✗ §1.5.2 对标（非党政语境）: %d 处${NC}\n" "$DB_JARGON"
+    grep -nE "对标" "$FILE" | head -3 | sed 's/^/    /'
     [ "$MODE" = "suggest" ] && suggest_for jargon
     VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s15" "$JARGON_COUNT"
+    inc_section "s15" "$DB_JARGON"
 else
-    printf "  ${GRN}✓ §1.5.2 互联网大厂黑话 = 0${NC}\n"
+    printf "  ${GRN}✓ §1.5.2 对标 = 0（或党政语境豁免）${NC}\n"
 fi
 
-# §1.5.3 网络口语 / 网感词
-NETSPEAK="本仓库|本号|本站|锚点|硬约束|硬规则|硬指标|dogfooding|吃自己狗粮|降智|智商税|裂开|蚌埠住了|绷不住了|绝绝子|YYDS|永远滴神|拉胯|干货|满满的干货|种草|拔草|梭哈|押注|翻车|踩坑"
-NETSPEAK_COUNT=$(count_pattern "$NETSPEAK" "$FILE")
-if [ "$NETSPEAK_COUNT" -gt 0 ]; then
-    printf "  ${RED}✗ §1.5.3 网络口语 / 网感词: %d 处${NC}\n" "$NETSPEAK_COUNT"
-    grep -nE "$NETSPEAK" "$FILE" | head -3 | sed 's/^/    /'
-    [ "$MODE" = "suggest" ] && suggest_for netspeak
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s15" "$NETSPEAK_COUNT"
-else
-    printf "  ${GRN}✓ §1.5.3 网络口语 / 网感词 = 0${NC}\n"
-fi
-
-# §1.5.4 程序员 / 产品经理腔（在非技术架构语境的滥用）
+# §1.5.3-1.5.4 网络口语 / 程序员腔：v9.0 下沉 reviewer，仅做软警告提示
 PMS="MVP|PMF|冷启动|热启动|解耦|高内聚|新范式"
 PMS_COUNT=$(count_pattern "$PMS" "$FILE")
 if [ "$PMS_COUNT" -gt 0 ]; then
-    printf "  ${YEL}⚠ §1.5.4 程序员 / 产品经理腔: %d 处${NC} (技术语境合法)\n" "$PMS_COUNT"
+    printf "  ${YEL}⚠ §1.5.3-4 程序员 / 产品经理腔: %d 处${NC} (技术语境合法，下沉 reviewer 判定)\n" "$PMS_COUNT"
     WARNINGS=$((WARNINGS + 1))
     inc_section "s15" "$PMS_COUNT"
 else
-    printf "  ${GRN}✓ §1.5.4 程序员 / 产品经理腔 = 0${NC}\n"
+    printf "  ${GRN}✓ §1.5.3-4 程序员 / 产品经理腔 = 0${NC}\n"
 fi
 echo
 
@@ -633,57 +541,19 @@ echo
 # ----------------------------------------------------------
 echo "▼ §1.6 元注释 / 客服话术（阈值 = 0）"
 
-# v8.0 补：元论述导读（第三人称"本文将从…"）与第一人称元注释同属 §1.6.1
 META_OPEN="以下是几点说明|以下是几点想法|我将从.{1,3}个方面|我将围绕|本文将从.{1,3}个方面|本文将围绕|下文将从|下面从.{0,8}展开|让我为您整理|让我帮您梳理|让我先来分析|请允许我|请容我先|接下来我会|我接下来要"
-META_OPEN_COUNT=$(count_pattern "$META_OPEN" "$FILE")
-if [ "$META_OPEN_COUNT" -gt 0 ]; then
-    printf "  ${RED}✗ §1.6.1 元注释开头: %d 处${NC}\n" "$META_OPEN_COUNT"
-    grep -nE "$META_OPEN" "$FILE" | head -3 | sed 's/^/    /'
-    [ "$MODE" = "suggest" ] && suggest_for meta
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s16" "$META_OPEN_COUNT"
-else
-    printf "  ${GRN}✓ §1.6.1 元注释开头 = 0${NC}\n"
-fi
+check_red "$META_OPEN" "$FILE" "§1.6.1 元注释开头" "s16" "meta" || true
 
 SELF_INTRO="作为一个 AI 助手|作为一个 AI 模型|作为一个语言模型|作为大语言模型|作为对话式 AI|我虽然是 AI|我作为 AI 的局限性|我的知识截止日期"
-SELF_INTRO_COUNT=$(count_pattern "$SELF_INTRO" "$FILE")
-if [ "$SELF_INTRO_COUNT" -gt 0 ]; then
-    printf "  ${RED}✗ §1.6.2 自我介绍 / 身份声明: %d 处${NC}\n" "$SELF_INTRO_COUNT"
-    grep -nE "$SELF_INTRO" "$FILE" | head -3 | sed 's/^/    /'
-    [ "$MODE" = "suggest" ] && suggest_for meta
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s16" "$SELF_INTRO_COUNT"
-else
-    printf "  ${GRN}✓ §1.6.2 自我介绍 = 0${NC}\n"
-fi
+check_red "$SELF_INTRO" "$FILE" "§1.6.2 自我介绍 / 身份声明" "s16" "meta" || true
 
 DISCLAIMER="以上信息仅供参考|仅供参考请以官方为准|建议咨询专业人士|建议咨询医生|建议咨询律师|我无法替代专业建议|以上内容如有错误请指正|如有不当之处请见谅"
-DISCLAIMER_COUNT=$(count_pattern "$DISCLAIMER" "$FILE")
-if [ "$DISCLAIMER_COUNT" -gt 0 ]; then
-    printf "  ${RED}✗ §1.6.3 免责声明: %d 处${NC}\n" "$DISCLAIMER_COUNT"
-    grep -nE "$DISCLAIMER" "$FILE" | head -3 | sed 's/^/    /'
-    [ "$MODE" = "suggest" ] && suggest_for meta
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s16" "$DISCLAIMER_COUNT"
-else
-    printf "  ${GRN}✓ §1.6.3 免责声明 = 0${NC}\n"
-fi
+check_red "$DISCLAIMER" "$FILE" "§1.6.3 免责声明" "s16" "meta" || true
 
 SERVICE_TAIL="希望对您有帮助|希望这能帮到您|希望这些内容对您有用|如有其他问题.{0,5}欢迎继续提问|还有什么问题尽管问|有任何疑问请随时告诉我|有不清楚的地方请告诉我|谢谢您的提问|谢谢您的信任|感谢您的耐心"
-SERVICE_TAIL_COUNT=$(count_pattern "$SERVICE_TAIL" "$FILE")
-if [ "$SERVICE_TAIL_COUNT" -gt 0 ]; then
-    printf "  ${RED}✗ §1.6.4 服务话术段尾: %d 处${NC}\n" "$SERVICE_TAIL_COUNT"
-    grep -nE "$SERVICE_TAIL" "$FILE" | head -3 | sed 's/^/    /'
-    [ "$MODE" = "suggest" ] && suggest_for meta
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s16" "$SERVICE_TAIL_COUNT"
-else
-    printf "  ${GRN}✓ §1.6.4 服务话术段尾 = 0${NC}\n"
-fi
+check_red "$SERVICE_TAIL" "$FILE" "§1.6.4 服务话术段尾" "s16" "meta" || true
 
-# §1.6.5 拟人化集体代词：讲话稿 G2 / 随笔 G6 / 自媒体 G7 的集体动员（"让我们共同"）是正当修辞 → 豁免；
-# 其余体裁及 base 档降为软 WARN，不再零容忍硬 FAIL（语境判断题，实测 02-grain-speech 讲话稿曾被误 FAIL）。
+# §1.6.5 拟人化集体代词：G2/G6/G7 体裁豁免，其余软 WARN
 WERON_RE="我们都知道|我们大家|让我们一起来|让我们一起|让我们共同|不妨想象一下|不妨设想|试想一下"
 WERON=$(count_pattern "$WERON_RE" "$FILE")
 case "$GENRE" in
@@ -691,7 +561,7 @@ case "$GENRE" in
         printf "  ${GRN}✓ §1.6.5 拟人化集体代词: %d 处（%s 体裁动员修辞豁免）${NC}\n" "$WERON" "$GENRE" ;;
     *)
         if [ "$WERON" -gt 0 ]; then
-            printf "  ${YEL}⚠ §1.6.5 拟人化集体代词: %d 处（软信号；讲话稿 / 随笔 / 自媒体请传 --genre G2/G6/G7 豁免）${NC}\n" "$WERON"
+            printf "  ${YEL}⚠ §1.6.5 集体代词: %d 处（软信号；传 --genre G2/G6/G7 可豁免）${NC}\n" "$WERON"
             grep -nE "$WERON_RE" "$FILE" | head -3 | sed 's/^/    /'
             WARNINGS=$((WARNINGS + 1))
             inc_section "s16" "$WERON"
@@ -702,86 +572,18 @@ esac
 echo
 
 # ----------------------------------------------------------
-# §1.7 Wikipedia 长尾盲区（v4.2 新增，单条命中即 FAIL）
+# §1.7 工具残留（硬红线）
 # ----------------------------------------------------------
-echo "▼ §1.7 Wikipedia 长尾盲区（阈值 = 0）"
+echo "▼ §1.7 工具残留（阈值 = 0）"
 
 # §1.7.1 Reference markup bugs（确凿 AI 工具输出残留）
-MARKUP_BUGS=":contentReference|oaicite|oai_citation|attached_file|grok_card|grok-card"
-MARKUP_COUNT=$(count_pattern "$MARKUP_BUGS" "$FILE")
-if [ "$MARKUP_COUNT" -gt 0 ]; then
-    printf "  ${RED}✗ §1.7.1 Reference markup bugs (oaicite 等): %d 处${NC}\n" "$MARKUP_COUNT"
-    grep -nE "$MARKUP_BUGS" "$FILE" | head -3 | sed 's/^/    /'
-    [ "$MODE" = "suggest" ] && suggest_for wp_long
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s17" "$MARKUP_COUNT"
-else
-    printf "  ${GRN}✓ §1.7.1 Reference markup bugs = 0${NC}\n"
-fi
+check_red ":contentReference|oaicite|oai_citation|attached_file|grok_card|grok-card" "$FILE" "§1.7.1 markup bugs" "s17" "wp_long" || true
 
-# §1.7.2 Placeholder dates + 错误文号占位（v8.0 从 scan-hard-gate H2.1 端口，合并前唯一独有检查）
-PLACEHOLDER_DATE="20[0-9][0-9]-xx-xx|XXXX-XX-XX|\\{\\{access-date\\|.*xx-xx|〔YYYY〕|〔xxx〕|（待补文号）"
-PLACEHOLDER_COUNT=$(count_pattern "$PLACEHOLDER_DATE" "$FILE")
-if [ "$PLACEHOLDER_COUNT" -gt 0 ]; then
-    printf "  ${RED}✗ §1.7.2 Placeholder dates: %d 处${NC}\n" "$PLACEHOLDER_COUNT"
-    grep -nE "$PLACEHOLDER_DATE" "$FILE" | head -3 | sed 's/^/    /'
-    VIOLATIONS=$((VIOLATIONS + 1))
-    inc_section "s17" "$PLACEHOLDER_COUNT"
-else
-    printf "  ${GRN}✓ §1.7.2 Placeholder dates = 0${NC}\n"
-fi
+# §1.7.2 Placeholder dates + 错误文号占位
+check_red "20[0-9][0-9]-xx-xx|XXXX-XX-XX|\\{\\{access-date\\|.*xx-xx|〔YYYY〕|〔xxx〕|（待补文号）" "$FILE" "§1.7.2 Placeholder dates" "s17" || true
 
-# §1.7.5 Inline-header vertical lists（粘贴式段首标题）
-INLINE_HEAD="^Background:|^Note:|^Summary:|^Context:|^背景：|^说明：|^小结："
-INLINE_COUNT=$(grep -cE "$INLINE_HEAD" "$FILE" 2>/dev/null || echo 0)
-INLINE_COUNT=$(echo "$INLINE_COUNT" | head -1 | tr -d ' \n\r')
-[ -z "$INLINE_COUNT" ] && INLINE_COUNT=0
-if [ "$INLINE_COUNT" -gt 0 ]; then
-    printf "  ${YEL}⚠ §1.7.5 Inline-header 段首标题: %d 处${NC}\n" "$INLINE_COUNT"
-    WARNINGS=$((WARNINGS + 1))
-    inc_section "s17" "$INLINE_COUNT"
-else
-    printf "  ${GRN}✓ §1.7.5 Inline-header 段首标题 = 0${NC}\n"
-fi
-
-# §1.7.7 Thematic breaks before headings（标题前水平线，按文件长度自适应阈值）
-THEMATIC=$(grep -cE '^---$' "$FILE" 2>/dev/null || echo 0)
-THEMATIC=$(echo "$THEMATIC" | head -1 | tr -d ' \n\r')
-[ -z "$THEMATIC" ] && THEMATIC=0
-LINES=$(wc -l < "$FILE" 2>/dev/null | tr -d ' ')
-[ -z "$LINES" ] && LINES=0
-# 阈值：每 30 行允许 1 条 thematic break，最少 5
-THEMATIC_THRESH=$((LINES / 30))
-[ "$THEMATIC_THRESH" -lt 5 ] && THEMATIC_THRESH=5
-if [ "$THEMATIC" -gt "$THEMATIC_THRESH" ]; then
-    printf "  ${YEL}⚠ §1.7.7 Thematic breaks: %d 处 / 阈值 ≤ %d${NC}\n" "$THEMATIC" "$THEMATIC_THRESH"
-    WARNINGS=$((WARNINGS + 1))
-    inc_section "s17" "$THEMATIC"
-else
-    printf "  ${GRN}✓ §1.7.7 Thematic breaks: %d / 阈值 ≤ %d${NC}\n" "$THEMATIC" "$THEMATIC_THRESH"
-fi
 echo
 
-# ----------------------------------------------------------
-# §3 结构反模式（启发式）
-# ----------------------------------------------------------
-echo "▼ §3 结构反模式（启发式提示）"
-JIEWEI=$(count_pattern "体现了|反映了|彰显了" "$FILE")
-TIAOZHAN=$(count_pattern "尽管面临.{0,20}挑战" "$FILE")
-
-if [ "$JIEWEI" -gt 2 ]; then
-    printf "  ${YEL}⚠ 段尾分词挂总结（体现了/反映了/彰显了）: %d 处 / 阈值 ≤ 2${NC}\n" "$JIEWEI"
-    WARNINGS=$((WARNINGS + 1))
-else
-    printf "  ${GRN}✓ 段尾分词挂总结: %d 处${NC}\n" "$JIEWEI"
-fi
-
-if [ "$TIAOZHAN" -gt 0 ]; then
-    printf "  ${YEL}⚠ 挑战与展望套壳: %d 处${NC}\n" "$TIAOZHAN"
-    WARNINGS=$((WARNINGS + 1))
-else
-    printf "  ${GRN}✓ 挑战与展望套壳 = 0${NC}\n"
-fi
 echo
 
 # ----------------------------------------------------------
@@ -812,22 +614,15 @@ PYEOF
 [ "$PYRESULT" -eq 2 ] && WARNINGS=$((WARNINGS + 1))
 echo
 
-# ----------------------------------------------------------
-# 分组密度报表（v4.2 新增）
-# ----------------------------------------------------------
-echo "▼ 分组密度报表（按 anti-ai-taste-anchors.md 章节）"
-printf "  §1.1: %d 处\n" "$SC_s11"
-printf "  §1.2: %d 处\n" "$SC_s12"
-printf "  §1.3: %d 处\n" "$SC_s13"
-printf "  §1.4: %d 处\n" "$SC_s14"
-printf "  §1.5: %d 处\n" "$SC_s15"
-printf "  §1.6: %d 处\n" "$SC_s16"
-printf "  §1.7: %d 处\n" "$SC_s17"
+echo "▼ 分组密度报表"
+for sec in s11 s13 s14 s15 s16 s17; do
+    eval "v=\$SC_$sec"
+    [ "$v" -gt 0 ] && printf "  %s: %d 处\n" "$sec" "$v"
+done
 echo
 
 # ----------------------------------------------------------
 # 总结
-# ----------------------------------------------------------
 echo "================================================"
 if [ "$VIOLATIONS" -eq 0 ] && [ "$WARNINGS" -eq 0 ]; then
     printf "${GRN}✅ PASS — 全部红线和软阈值通过，可以交付${NC}\n"

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/sinnohzeng/xuan-jiang/blob/main/plugins/writing-polish/skills/writing-polish/schemas/scan-output.schema.json",
+  "$id": "https://github.com/sinnohzeng/xuan-jiang/blob/main/plugins/writing-polish/skills/writing-polish/assets/scan-output.schema.json",
   "title": "writing-polish scan-ai-taste.sh --json output",
   "description": "Summary output of L1 hard gate. Main session reads this to decide L2/L3 routing.",
   "type": "object",
@@ -9,7 +9,7 @@
   "properties": {
     "version": {
       "type": "string",
-      "const": "8.0",
+      "const": "9.0",
       "description": "Schema version, bumps on break change"
     },
     "file": {

@@ -149,7 +149,7 @@
 
 ## §3 reviewer 子代理必读
 
-v7.0 Polish Protocol step 2 触发审校时，主对话用 Task 工具 spawn [`../../agents/writing-reviewer.md`](../../agents/writing-reviewer.md)（clean context，返回自然语言反馈 + verdict，不打数值分）。
+v7.0 Polish Protocol step 2 触发审校时，主对话用 Task 工具 spawn [`../agents/writing-reviewer.md`](../agents/writing-reviewer.md)（clean context，返回自然语言反馈 + verdict，不打数值分）。
 
 每个 reviewer 必守本文件 §2“他批”礼貌。
 
