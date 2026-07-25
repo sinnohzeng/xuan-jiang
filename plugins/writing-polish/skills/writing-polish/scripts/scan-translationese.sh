@@ -233,12 +233,12 @@ for i, line in enumerate(lines, 1):
 
 conn_count = len(conn_matches)
 conn_pct = (conn_count / char_count * 100) if char_count > 0 else 0
-if conn_pct > 0.01:
+if conn_pct > 0.03 or conn_count >= 5:
     warnings.append({
         'family': '连接词族',
         'rule': '书面连接词密集（因此/然而/此外/所以/但是/并且/而且/不过…）',
         'count': conn_count,
-        'threshold': f'{conn_pct:.3f}% > 0.01%',
+        'threshold': f'{conn_pct:.3f}% > 0.03% 或 count ≥ 5',
         'examples': [(ln, txt) for ln, _, txt in conn_matches[:5]]
     })
 
