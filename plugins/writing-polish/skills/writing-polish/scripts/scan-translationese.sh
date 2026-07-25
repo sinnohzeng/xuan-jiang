@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scan-translationese.sh —— writing-polish v9.0 翻译腔句法软扫描
+# scan-translationese.sh —— writing-polish v9.1 翻译腔句法软扫描
 #
 # 用法：
 #   bash scan-translationese.sh <file.md>
@@ -28,7 +28,7 @@ MODE="human"
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
     cat <<'HELP'
-scan-translationese.sh —— writing-polish v9.0 翻译腔句法软扫描
+scan-translationese.sh —— writing-polish v9.1 翻译腔句法软扫描
 
 用法：
   bash scan-translationese.sh <file.md>
@@ -152,12 +152,13 @@ for i, line in enumerate(lines, 1):
         for_matches.append((i, line.strip()[:120]))
 
 for_count = len(for_matches)
-if for_count > 2 * unit_500:
+for_pct = (for_count / char_count * 100) if char_count > 0 else 0
+if for_pct > 0.01:
     warnings.append({
         'family': '长定语族',
         'rule': '"对于…来说/而言"密集',
         'count': for_count,
-        'threshold': f'≤ {int(2 * unit_500)}/500字',
+        'threshold': f'{for_pct:.3f}% > 0.01%',
         'examples': for_matches[:5]
     })
 
@@ -165,34 +166,55 @@ if for_count > 2 * unit_500:
 # 族 2: 被动/名词化族
 # ============================================================
 # 2a: 被动句（阈值 ≤ 3/500字）
-pattern_passive = r'被.{2,15}(所|地|给)'
+pattern_passive = r'被.{1,20}(所|地|给|认为|视为|看作|当作|称为|誉为|评为|列为|纳入|归入|划入)'
+pattern_passive_fixed = r'(被认为是|被视为|被看作|被当作|被称为|被誉为|被评为|被列为|被纳入|被归入)'
 passive_matches = []
+passive_seen = set()  # dedup by (line, match_start_position)
 for i, line in enumerate(lines, 1):
     for m in re.finditer(pattern_passive, line):
-        passive_matches.append((i, line.strip()[:120]))
+        key = (i, m.start())
+        if key not in passive_seen:
+            passive_seen.add(key)
+            passive_matches.append((i, m.group()))
+    for m in re.finditer(pattern_passive_fixed, line):
+        key = (i, m.start())
+        if key not in passive_seen:
+            passive_seen.add(key)
+            passive_matches.append((i, m.group()))
 
 passive_count = len(passive_matches)
-if passive_count > 3 * unit_500:
+passive_pct = (passive_count / char_count * 100) if char_count > 0 else 0
+if passive_pct > 0.01:
     warnings.append({
         'family': '被动/名词化族',
-        'rule': '被动句"被…所/地/给"密集',
+        'rule': '被动句"被…所/地/给/认为/视为…"密集',
         'count': passive_count,
-        'threshold': f'≤ {int(3 * unit_500)}/500字',
+        'threshold': f'{passive_pct:.3f}% > 0.01%',
         'examples': passive_matches[:5]
     })
 
 # 2b: 名词化（进行了/实现了/完成了 + 的）
-pattern_nominal = r'(进行了|实现了|完成了).{2,10}的'
+pattern_nominal = r'(进行了|实现了|完成了|开展了|推进了|实施了|落实了|推动了|加强了|完善了).{1,20}(的|工作|建设|发展|管理|治理)'
+pattern_nominal_shell = r'(进行|实现|完成|开展|推进)(了|着)?(全面的|深入的|系统的|有效的|积极的).{2,15}(工作|建设|发展|改革|治理|管理|评估|分析|研究)'
 nominal_matches = []
+nominal_seen = set()
 for i, line in enumerate(lines, 1):
     for m in re.finditer(pattern_nominal, line):
-        nominal_matches.append((i, line.strip()[:120]))
+        key = (i, m.start())
+        if key not in nominal_seen:
+            nominal_seen.add(key)
+            nominal_matches.append((i, m.group()))
+    for m in re.finditer(pattern_nominal_shell, line):
+        key = (i, m.start())
+        if key not in nominal_seen:
+            nominal_seen.add(key)
+            nominal_matches.append((i, m.group()))
 
 nominal_count = len(nominal_matches)
 if nominal_count > 0:
     warnings.append({
         'family': '被动/名词化族',
-        'rule': '"进行了/实现了/完成了…的"名词化',
+        'rule': '"进行了/实现了/完成了…的"名词化 或 套壳结构',
         'count': nominal_count,
         'threshold': '任何出现即警告',
         'examples': nominal_matches[:5]
@@ -202,19 +224,24 @@ if nominal_count > 0:
 # 族 3: 连接词族
 # ============================================================
 # 书面连接词密集（阈值 ≤ 3/300字）
-pattern_connectors = r'(因此|然而|此外|与此同时|不仅如此)'
+pattern_connectors = r'(因此|然而|此外|与此同时|不仅如此|从而|进而|继而|在此基础上|在这种情况下|从这个意义上说|随之而来的是|所以|但是|并且|而且|不过)'
 conn_matches = []
+conn_seen = set()  # dedup by (line, match_start_position)
 for i, line in enumerate(lines, 1):
     for m in re.finditer(pattern_connectors, line):
-        conn_matches.append((i, m.group(), line.strip()[:120]))
+        key = (i, m.start())
+        if key not in conn_seen:
+            conn_seen.add(key)
+            conn_matches.append((i, m.group(), line.strip()[:120]))
 
 conn_count = len(conn_matches)
-if conn_count > 3 * unit_300:
+conn_pct = (conn_count / char_count * 100) if char_count > 0 else 0
+if conn_pct > 0.03:
     warnings.append({
         'family': '连接词族',
-        'rule': '书面连接词密集（因此/然而/此外/与此同时/不仅如此）',
+        'rule': '书面连接词密集（因此/然而/此外/所以/但是/并且/而且/不过…）',
         'count': conn_count,
-        'threshold': f'≤ {int(3 * unit_300)}/300字',
+        'threshold': f'{conn_pct:.3f}% > 0.03%',
         'examples': [(ln, txt) for ln, _, txt in conn_matches[:5]]
     })
 
@@ -222,19 +249,20 @@ if conn_count > 3 * unit_300:
 # 族 4: 形式主语族
 # ============================================================
 # 形式主语密集（阈值 ≤ 2/500字）
-pattern_formal_subj = r'(有必要|值得注意的是|应该指出|需要指出的是)'
+pattern_formal_subj = r'(有必要|值得注意的是|应该指出|需要指出的是|需要强调的是|不可忽视的是|不可否认|众所周知|显而易见|毋庸置疑|应当看到|必须承认)'
 fs_matches = []
 for i, line in enumerate(lines, 1):
     for m in re.finditer(pattern_formal_subj, line):
         fs_matches.append((i, m.group(), line.strip()[:120]))
 
 fs_count = len(fs_matches)
-if fs_count > 2 * unit_500:
+fs_pct = (fs_count / char_count * 100) if char_count > 0 else 0
+if fs_pct > 0.01:
     warnings.append({
         'family': '形式主语族',
-        'rule': '形式主语密集（有必要/值得注意的是/应该指出/需要指出的是）',
+        'rule': '形式主语密集（有必要/值得注意的是/应该指出/需要指出的是/需要强调的是/不可忽视的是…）',
         'count': fs_count,
-        'threshold': f'≤ {int(2 * unit_500)}/500字',
+        'threshold': f'{fs_pct:.3f}% > 0.01%',
         'examples': [(ln, txt) for ln, _, txt in fs_matches[:5]]
     })
 
@@ -265,7 +293,7 @@ if mode == 'json':
             })
 
     result = {
-        "version": "9.0",
+        "version": "9.1",
         "scanner": "translationese",
         "file": os.path.abspath(file_path),
         "draft_hash": draft_hash,
@@ -293,7 +321,7 @@ if mode == 'json':
 else:
     # 人类可读输出
     print("================================================")
-    print("       翻译腔句法软扫描 v9.0")
+    print("       翻译腔句法软扫描 v9.1")
     print(f"       文件：{file_path}")
     print(f"       字数：{char_count}")
     print("================================================")

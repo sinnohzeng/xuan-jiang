@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scan-ai-taste.sh —— writing-polish v9.0 L1 hard gate
+# scan-ai-taste.sh —— writing-polish v9.1 L1 hard gate
 #
 # 角色：交付前 AI 味自检（L1 硬扫）+ JSON 输出供主对话 / writing-reviewer 路由决策。
 # 在交付任何修改稿前必跑。任何硬约束未达标，禁止交付。
@@ -140,7 +140,7 @@ draft_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
 
 if mode == 'json':
     result = {
-        "version": "9.0",
+        "version": "9.1",
         "file": os.path.abspath(file_path),
         "draft_hash": draft_hash,
         "exit_code": exit_code,
@@ -165,10 +165,10 @@ if log_to:
         os.makedirs(log_dir, exist_ok=True)
     final_action = "passed" if exit_code == 0 else ("fixed" if exit_code == 2 else "rolled_back")
     log_entry = {
-        "version": "9.0",
+        "version": "9.1",
         "timestamp": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         "draft_hash": draft_hash,
-        "protocol": "v9.0",
+        "protocol": "v9.1",
         "mode": "audit",
         "scan_summary": {
             "red_line_violations_total": red_total,
@@ -213,7 +213,7 @@ fi
 VIOLATIONS=0
 WARNINGS=0
 # 分组密度统计：用普通变量避免 macOS bash 3.2 不支持 declare -A
-SC_s11=0; SC_s13=0; SC_s14=0; SC_s15=0; SC_s16=0; SC_s17=0
+SC_s11=0; SC_s13=0; SC_s14=0; SC_s15=0; SC_s16=0; SC_s17=0; SC_s18=0; SC_s19=0
 
 # 分组累加器
 inc_section() {
@@ -226,6 +226,8 @@ inc_section() {
         s15) SC_s15=$((SC_s15 + n)) ;;
         s16) SC_s16=$((SC_s16 + n)) ;;
         s17) SC_s17=$((SC_s17 + n)) ;;
+        s18) SC_s18=$((SC_s18 + n)) ;;
+        s19) SC_s19=$((SC_s19 + n)) ;;
     esac
 }
 
@@ -343,8 +345,40 @@ fix_word() {
     esac
 }
 
+# §1.4.0 破折号检测（含法律/政策语境白名单，v9.1 新增）
+check_dash_with_legal_exempt() {
+    local file="$1"
+    local legal_kw="法律|法规|条例|条款|立法|司法|执法|法治|依法行政|《.*法》|《.*条例》|《.*规定》"
+    local dash_re="——|—|――|―"
+    local hits=0
+    local exempted=0
+    while IFS=: read -r lineno _rest; do
+        [ -z "$lineno" ] && continue
+        hits=$((hits + 1))
+        local lo=$((lineno - 2))
+        local hi=$((lineno + 2))
+        [ "$lo" -lt 1 ] && lo=1
+        local context
+        context=$(sed -n "${lo},${hi}p" "$file")
+        if echo "$context" | grep -qE "$legal_kw"; then
+            exempted=$((exempted + 1))
+            printf "  ${GRN}✓ §1.4 破折号 L%s: 法律/政策语境豁免${NC}\n" "$lineno"
+        else
+            VIOLATIONS=$((VIOLATIONS + 1))
+            inc_section "s14" 1
+            printf "  ${RED}✗ §1.4 破折号 L%s${NC}\n" "$lineno"
+            sed -n "${lineno}p" "$file" | sed 's/^/    /'
+        fi
+    done < <(grep -nE "$dash_re" "$file")
+    if [ "$hits" -eq 0 ]; then
+        printf "  ${GRN}✓ §1.4 破折号 = 0${NC}\n"
+    elif [ "$hits" -eq "$exempted" ]; then
+        printf "  ${GRN}✓ §1.4 破折号: %d 处全部法律语境豁免${NC}\n" "$hits"
+    fi
+}
+
 echo "================================================"
-echo "       AI 味红线扫描 v9.0"
+echo "       AI 味红线扫描 v9.1"
 echo "       文件：$FILE"
 [ "$MODE" = "suggest" ] && echo "       模式：建议改写"
 echo "================================================"
@@ -354,7 +388,7 @@ echo
 # §1.4 标点红线（必须 = 0）
 # ----------------------------------------------------------
 echo "▼ §1.4 标点红线（阈值 = 0）"
-check_red "——|—|――|―" "$FILE" "破折号" "s14" "dash" || true
+check_dash_with_legal_exempt "$FILE"
 check_red "（如|（即|（也就是说" "$FILE" "括号内补充" "s14" "paren" || true
 
 # §1.4.111-113 中文标点与中英混排（外置 python 检测器，分项报告）
@@ -587,6 +621,123 @@ echo
 echo
 
 # ----------------------------------------------------------
+# §1.8 开篇模板化检测（v9.1 新增，GAP-1）
+# ----------------------------------------------------------
+echo "▼ §1.8 开篇模板化检测"
+OPENING_RESULT=$(python3 - "$FILE" <<'PYEOF'
+import re, sys
+text = open(sys.argv[1], encoding='utf-8').read()
+if text.startswith('---'):
+    end = text.find('---', 3)
+    if end != -1:
+        text = text[end+3:].strip()
+first_para = ""
+for line in text.split('\n'):
+    line = line.strip()
+    if not line or line.startswith('#'):
+        continue
+    first_para = line
+    break
+templates = [
+    r'党中央.{0,10}国务院围绕.{2,30}作出.{2,20}(部署|决定|安排|要求)',
+    r'随着.{2,30}(深入|快速|持续|蓬勃)发展',
+    r'在.{2,20}(大背景|新形势|新时代|大趋势)下',
+    r'当前.{0,5}.{2,30}(正面临|正处于|正在经历)',
+    r'近年来.{0,5}.{2,30}(取得了|实现了|达到了).{2,20}(成就|进展|突破)',
+]
+for t in templates:
+    m = re.search(t, first_para)
+    if m:
+        print(f'WARN|{m.group()[:80]}')
+        sys.exit(0)
+print('OK')
+PYEOF
+)
+if [[ "$OPENING_RESULT" == WARN* ]]; then
+    matched="${OPENING_RESULT#WARN|}"
+    printf "  ${YEL}⚠ §1.8 开篇模板化: 首段匹配常见 AI 生成模板: \"%s\"${NC}\n" "$matched"
+    WARNINGS=$((WARNINGS + 1))
+    inc_section "s18" 1
+else
+    printf "  ${GRN}✓ §1.8 开篇模板化 = 未检出${NC}\n"
+fi
+echo
+
+# ----------------------------------------------------------
+# §1.9 超长段落检测（v9.1 新增，GAP-3）
+# ----------------------------------------------------------
+echo "▼ §1.9 超长段落检测"
+PARA_RESULT=$(python3 - "$FILE" <<'PYEOF'
+import sys
+
+text = open(sys.argv[1], encoding='utf-8').read()
+lines = text.split('\n')
+
+paragraphs = []
+in_code = False
+current_start = None
+current_chars = 0
+
+for i, line in enumerate(lines, 1):
+    stripped = line.strip()
+    if stripped.startswith('```'):
+        in_code = not in_code
+        if current_start is not None and current_chars > 0:
+            paragraphs.append((current_start, current_chars))
+            current_start = None
+            current_chars = 0
+        continue
+    if in_code:
+        continue
+    if stripped.startswith('|') or stripped.startswith('>') or stripped.startswith('#'):
+        if current_start is not None and current_chars > 0:
+            paragraphs.append((current_start, current_chars))
+            current_start = None
+            current_chars = 0
+        continue
+    if not stripped:
+        if current_start is not None and current_chars > 0:
+            paragraphs.append((current_start, current_chars))
+            current_start = None
+            current_chars = 0
+        continue
+    if current_start is None:
+        current_start = i
+    current_chars += len(stripped)
+
+if current_start is not None and current_chars > 0:
+    paragraphs.append((current_start, current_chars))
+
+SOFT = 500
+HARD = 800
+found = False
+for start_line, cc in paragraphs:
+    if cc >= HARD:
+        print(f'HARD|{start_line}|{cc}')
+        found = True
+    elif cc >= SOFT:
+        print(f'SOFT|{start_line}|{cc}')
+        found = True
+if not found:
+    print('OK')
+PYEOF
+)
+if [[ "$PARA_RESULT" != "OK" ]]; then
+    while IFS='|' read -r level line count; do
+        if [[ "$level" == "HARD" ]]; then
+            printf "  ${YEL}⚠ §1.9 超长段落: 第 %s 行起 %s 字（≥ 800 字，建议拆分）${NC}\n" "$line" "$count"
+        else
+            printf "  ${YEL}⚠ §1.9 超长段落: 第 %s 行起 %s 字（≥ 500 字，建议拆分）${NC}\n" "$line" "$count"
+        fi
+    done <<< "$PARA_RESULT"
+    WARNINGS=$((WARNINGS + 1))
+    inc_section "s19" 1
+else
+    printf "  ${GRN}✓ §1.9 超长段落 = 无超长段落${NC}\n"
+fi
+echo
+
+# ----------------------------------------------------------
 # 句长方差（人写有长短）
 # ----------------------------------------------------------
 echo "▼ 句长方差（阈值 ≥ 8）"
@@ -615,7 +766,7 @@ PYEOF
 echo
 
 echo "▼ 分组密度报表"
-for sec in s11 s13 s14 s15 s16 s17; do
+for sec in s11 s13 s14 s15 s16 s17 s18 s19; do
     eval "v=\$SC_$sec"
     [ "$v" -gt 0 ] && printf "  %s: %d 处\n" "$sec" "$v"
 done

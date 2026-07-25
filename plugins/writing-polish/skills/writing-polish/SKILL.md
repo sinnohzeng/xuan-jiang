@@ -4,7 +4,7 @@ description: Coaches, drafts, polishes, and audits Chinese documents using 《�
 allowed-tools: Bash, Read, Edit, Write, Task
 ---
 
-# writing-polish v9.0
+# writing-polish v9.1
 
 任仲然《怎样写作》+ 正向引导 + 翻译腔检测 + ~80 条 AI 味红线 + clean-context 反馈式审校（Anthropic evaluator-optimizer 范式）。
 
@@ -32,6 +32,18 @@ v8.0 的四大焦点全是"负面检测"——找 AI 味、找红线。v9.0 新�
 **白熊效应**：研究表明在 prompt 中列出被禁止词会反向激活该词表征（Anthropic 2026-07 Global Workspace 实验）。因此 v9.0 将负面清单从 230+ 条精简至 ~80 条，释放的认知带宽用于正向引导。
 
 正向引导核心文件：[`references/positive-chinese-guide.md`](references/positive-chinese-guide.md)（地道中文三动作 + 翻译腔四族反模式 + 改稿正向思维）。
+
+### §0.2 v9.1 三阶段流水线概念
+
+v9.1 将 Polish Protocol 4 步在概念上映射为三阶段：
+
+| 阶段 | 对应步骤 | 职责 | 关键工具 |
+|------|---------|------|----------|
+| **P1 预处理** | step 1 + step 2 + step 2.5 | 扫描 + 诊断 + 用户确认 | scan-ai-taste.sh + scan-translationese.sh + reviewer |
+| **P2 润色** | step 3 | 主对话串行修改 | 5 维 sweep + positive-chinese-guide |
+| **P3 评审** | step 4 | 验证 + 可选终审 | scan 重跑 + 可选 clean-context reviewer |
+
+实际执行流程不变（step 1-4 详细描述保持原样），三阶段术语仅用于概念沟通和未来扩展。
 
 ## §1 Mode 路由
 
