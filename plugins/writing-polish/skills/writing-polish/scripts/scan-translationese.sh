@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scan-translationese.sh —— writing-polish v9.1 翻译腔句法软扫描
+# scan-translationese.sh —— writing-polish v9.2 翻译腔句法软扫描
 #
 # 用法：
 #   bash scan-translationese.sh <file.md>
@@ -28,7 +28,7 @@ MODE="human"
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
     cat <<'HELP'
-scan-translationese.sh —— writing-polish v9.1 翻译腔句法软扫描
+scan-translationese.sh —— writing-polish v9.2 翻译腔句法软扫描
 
 用法：
   bash scan-translationese.sh <file.md>
@@ -128,8 +128,8 @@ warnings = []  # list of {family, rule, count, threshold, examples}
 # ============================================================
 # 族 1: 长定语族
 # ============================================================
-# 1a: 连续 3+ 个"的"的定语链
-pattern_de_chain = r'的.{1,20}的.{1,20}的.{1,20}的'
+# 1a: 连续 4+ 个"的"的定语链
+pattern_de_chain = r'的.{1,20}的.{1,20}的.{1,20}的.{1,20}的'
 de_chain_matches = []
 for i, line in enumerate(lines, 1):
     if re.search(pattern_de_chain, line):
@@ -138,7 +138,7 @@ for i, line in enumerate(lines, 1):
 if len(de_chain_matches) > 0:
     warnings.append({
         'family': '长定语族',
-        'rule': '连续3+个"的"字定语链',
+        'rule': '连续4+个"的"字定语链',
         'count': len(de_chain_matches),
         'threshold': '任何出现即警告',
         'examples': de_chain_matches[:5]
@@ -220,7 +220,7 @@ if nominal_count > 0:
 # 族 3: 连接词族
 # ============================================================
 # 书面连接词密集（阈值 ≤ 3/300字）
-pattern_connectors = r'(因此|然而|此外|与此同时|不仅如此|从而|进而|继而|在此基础上|在这种情况下|从这个意义上说|随之而来的是|所以|但是|并且|而且|不过)'
+pattern_connectors = r'(因此|然而|此外|与此同时|不仅如此|从而|进而|继而|在此基础上|在这种情况下|从这个意义上说|随之而来的是)'
 conn_matches = []
 conn_seen_lines = set()  # dedup: each line counted at most once
 for i, line in enumerate(lines, 1):
@@ -236,7 +236,7 @@ conn_pct = (conn_count / char_count * 100) if char_count > 0 else 0
 if conn_pct > 0.03 or conn_count >= 5:
     warnings.append({
         'family': '连接词族',
-        'rule': '书面连接词密集（因此/然而/此外/所以/但是/并且/而且/不过…）',
+        'rule': '书面连接词密集（因此/然而/此外/与此同时/不仅如此/从而/进而/继而…）',
         'count': conn_count,
         'threshold': f'{conn_pct:.3f}% > 0.03% 或 count ≥ 5',
         'examples': [(ln, txt) for ln, _, txt in conn_matches[:5]]
@@ -290,7 +290,7 @@ if mode == 'json':
             })
 
     result = {
-        "version": "9.1",
+        "version": "9.2",
         "scanner": "translationese",
         "file": os.path.abspath(file_path),
         "draft_hash": draft_hash,
@@ -318,7 +318,7 @@ if mode == 'json':
 else:
     # 人类可读输出
     print("================================================")
-    print("       翻译腔句法软扫描 v9.1")
+    print("       翻译腔句法软扫描 v9.2")
     print(f"       文件：{file_path}")
     print(f"       字数：{char_count}")
     print("================================================")

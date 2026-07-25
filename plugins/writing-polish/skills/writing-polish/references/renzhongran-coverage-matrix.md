@@ -38,5 +38,5 @@
 ## §3 项目延伸（非原书）
 
 - **G8 第三方咨询报告**：cicpa 治理沉淀，非《怎样写作》原书体裁，但沿用原书方法论框架。详 [`constitution.md`](constitution.md) §2.8。
-- **230 余条 AI 味红线**：对应原书「朴实语言」精神的工程化扩展，信源为 Wikipedia《Signs of AI writing》等当代语料，非原书内容。详 [`anti-ai-taste-anchors.md`](anti-ai-taste-anchors.md)。
+- **~80 条 AI 味红线（v9.0 精简版）**：对应原书「朴实语言」精神的工程化扩展，信源为 Wikipedia《Signs of AI writing》等当代语料，非原书内容。详 [`anti-ai-taste-anchors.md`](anti-ai-taste-anchors.md)。
 <!-- /scan-skip -->

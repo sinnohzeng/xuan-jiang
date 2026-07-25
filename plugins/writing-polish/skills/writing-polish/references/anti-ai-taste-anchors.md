@@ -1,4 +1,4 @@
-# 去 AI 味约束清单（Anti-AI-Taste Rules）v9.0
+# 去 AI 味约束清单（Anti-AI-Taste Rules）v9.2
 
 > **automation-level**: `regex-auto`（scripts/scan-ai-taste.sh 硬红线字面执行 ~40 条）
 > **SSOT**: 字面 anchor 真值源；SKILL.md §3 红线 4 铁律速查是本文件 §0-§1 的 cached compact mirror。

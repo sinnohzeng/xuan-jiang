@@ -1,11 +1,11 @@
-# xuan-jiang Constitution v7.0（按文体切片的审稿判依据）
+# xuan-jiang Constitution v9.2（按文体切片的审稿判依据）
 
 > **automation-level**: `claude-code-session-only`（主对话 + clean-context reviewer 读本文件；不被脚本自动消费）
 > **SSOT 关系**: SKILL.md §4“三大审查焦点 + 红线”是本文件 §0 + §0.5 的 compact mirror（cached subset）；改 SKILL §4 时必须先对照本文件。
 > **load-when**: Polish Protocol step 2 主对话给每个 writing-reviewer 注入“该 reviewer 分到焦点对应的体裁切片”（§0 / §0.5 + §2 体裁 + §3/§4 例外）；reviewer 据此给自然语言反馈。
 > **v7.0 变更**: per-use 路径不打数值分。本文件从“0-3 评分细则”改为“审稿焦点的判依据（好/差长啥样）”；D1-D5 的概念折叠进单一“AI味·标点”焦点，数值评分仅在 [`../evals/offline-harness/`](../evals/offline-harness/) 离线使用。
 >
-> anti-ai-taste-anchors.md 是给 `scan-ai-taste.sh` 看的**字面 anchor SSOT**（230+ 条逐字红线）。本文件是给主对话 / clean-context reviewer 看的**场景化判依据 SSOT**：同一批红线按文体切片、嵌入例外清单与 before→after 示例，reviewer 只引用与当前文体相关的切片。
+> anti-ai-taste-anchors.md 是给 `scan-ai-taste.sh` 看的**字面 anchor SSOT**（~80 条逐字红线，v9.0 精简版）。本文件是给主对话 / clean-context reviewer 看的**场景化判依据 SSOT**：同一批红线按文体切片、嵌入例外清单与 before→after 示例，reviewer 只引用与当前文体相关的切片。
 
 ## 目录
 
@@ -580,7 +580,7 @@ reviewer 评“材料·事实”与“整体散文 AI 体”时，遇以下模�
 
 ## §9 SSOT 交叉引用
 
-- **字面 anchor SSOT**：[anti-ai-taste-anchors.md](anti-ai-taste-anchors.md)（230 条逐字红线，grep 引擎用）
+- **字面 anchor SSOT**：[anti-ai-taste-anchors.md](anti-ai-taste-anchors.md)（~80 条逐字红线，v9.0 精简版，grep 引擎用）
 - **真实锚本集**：[../assets/real-world-anchors/](../assets/real-world-anchors/)（11 段公文 / 咨询报告示例）
 - **文体写作指南**：[genre-guide.md](genre-guide.md)（《怎样写作》6-11 讲）
 - **公文格式**：[gongwen-format.md](gongwen-format.md)

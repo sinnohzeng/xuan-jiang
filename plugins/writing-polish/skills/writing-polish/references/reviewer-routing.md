@@ -6,7 +6,7 @@
 
 ## §1 决策表（mode × 体裁 × 长度 → reviewer 数与焦点）
 
-四个审查焦点：`立意` / `结构与论据` / `材料·事实` / `AI味·标点`（定义见 [`constitution.md`](constitution.md) §0 + §0.5）。
+四个审查焦点：`立意` / `结构与论据` / `材料·事实` / `AI味·标点·翻译腔`（定义见 [`constitution.md`](constitution.md) §0 + §0.5）。
 
 | Polish 场景 | reviewer 数 | 焦点分摊 |
 |---|---|---|

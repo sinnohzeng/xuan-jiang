@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scan-ai-taste.sh —— writing-polish v9.1 L1 hard gate
+# scan-ai-taste.sh —— writing-polish v9.2 L1 hard gate
 #
 # 角色：交付前 AI 味自检（L1 硬扫）+ JSON 输出供主对话 / writing-reviewer 路由决策。
 # 在交付任何修改稿前必跑。任何硬约束未达标，禁止交付。
@@ -140,7 +140,7 @@ draft_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
 
 if mode == 'json':
     result = {
-        "version": "9.1",
+        "version": "9.2",
         "file": os.path.abspath(file_path),
         "draft_hash": draft_hash,
         "exit_code": exit_code,
@@ -163,12 +163,12 @@ if log_to:
     log_dir = os.path.dirname(os.path.abspath(log_to))
     if log_dir:
         os.makedirs(log_dir, exist_ok=True)
-    final_action = "passed" if exit_code == 0 else ("fixed" if exit_code == 2 else "rolled_back")
+    final_action = "soft_warning" if exit_code == 2 else "failed" if exit_code == 1 else "error" if exit_code == 3 else "passed"
     log_entry = {
-        "version": "9.1",
+        "version": "9.2",
         "timestamp": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         "draft_hash": draft_hash,
-        "protocol": "v9.1",
+        "protocol": "v9.2",
         "mode": "audit",
         "scan_summary": {
             "red_line_violations_total": red_total,
@@ -324,7 +324,7 @@ suggest_for() {
     esac
 }
 
-# 改写建议表（仅在 --suggest-fix 模式下输出）
+# 逐词替换建议表（仅在 --suggest-fix 模式下输出）
 fix_word() {
     case "$1" in
         赋能) echo "帮 / 支持 / 让…能" ;;
@@ -378,8 +378,8 @@ check_dash_with_legal_exempt() {
 }
 
 echo "================================================"
-echo "       AI 味红线扫描 v9.1"
-echo "       文件：$FILE"
+echo "       AI 味红线扫描 v9.2"
+echo "       文件：$ORIG_FILE"
 [ "$MODE" = "suggest" ] && echo "       模式：建议改写"
 echo "================================================"
 echo
@@ -655,11 +655,11 @@ PYEOF
 )
 if [[ "$OPENING_RESULT" == WARN* ]]; then
     matched="${OPENING_RESULT#WARN|}"
-    printf "  ${YEL}⚠ §1.8 开篇模板化: 首段匹配常见 AI 生成模板: \"%s\"${NC}\n" "$matched"
+    printf "  ${YEL}⚠ §1.8 开篇模板复用: 首段匹配常见政策性开篇句式: \"%s\"（跨文档重复时为强信号）${NC}\n" "$matched"
     WARNINGS=$((WARNINGS + 1))
     inc_section "s18" 1
 else
-    printf "  ${GRN}✓ §1.8 开篇模板化 = 未检出${NC}\n"
+    printf "  ${GRN}✓ §1.8 开篇模板复用 = 未检出${NC}\n"
 fi
 echo
 
