@@ -169,27 +169,25 @@ if for_pct > 0.01:
 pattern_passive = r'被.{1,20}(所|地|给|认为|视为|看作|当作|称为|誉为|评为|列为|纳入|归入|划入)'
 pattern_passive_fixed = r'(被认为是|被视为|被看作|被当作|被称为|被誉为|被评为|被列为|被纳入|被归入)'
 passive_matches = []
-passive_seen = set()  # dedup by (line, match_start_position)
+passive_seen_lines = set()  # dedup: each line counted at most once
 for i, line in enumerate(lines, 1):
-    for m in re.finditer(pattern_passive, line):
-        key = (i, m.start())
-        if key not in passive_seen:
-            passive_seen.add(key)
+    if i in passive_seen_lines:
+        continue
+    for pat in (pattern_passive, pattern_passive_fixed):
+        m = re.search(pat, line)
+        if m:
+            passive_seen_lines.add(i)
             passive_matches.append((i, m.group()))
-    for m in re.finditer(pattern_passive_fixed, line):
-        key = (i, m.start())
-        if key not in passive_seen:
-            passive_seen.add(key)
-            passive_matches.append((i, m.group()))
+            break  # only first match per line
 
 passive_count = len(passive_matches)
 passive_pct = (passive_count / char_count * 100) if char_count > 0 else 0
-if passive_pct > 0.01:
+if passive_pct > 0.005:
     warnings.append({
         'family': '被动/名词化族',
         'rule': '被动句"被…所/地/给/认为/视为…"密集',
         'count': passive_count,
-        'threshold': f'{passive_pct:.3f}% > 0.01%',
+        'threshold': f'{passive_pct:.3f}% > 0.005%',
         'examples': passive_matches[:5]
     })
 
@@ -197,18 +195,16 @@ if passive_pct > 0.01:
 pattern_nominal = r'(进行了|实现了|完成了|开展了|推进了|实施了|落实了|推动了|加强了|完善了).{1,20}(的|工作|建设|发展|管理|治理)'
 pattern_nominal_shell = r'(进行|实现|完成|开展|推进)(了|着)?(全面的|深入的|系统的|有效的|积极的).{2,15}(工作|建设|发展|改革|治理|管理|评估|分析|研究)'
 nominal_matches = []
-nominal_seen = set()
+nominal_seen_lines = set()
 for i, line in enumerate(lines, 1):
-    for m in re.finditer(pattern_nominal, line):
-        key = (i, m.start())
-        if key not in nominal_seen:
-            nominal_seen.add(key)
+    if i in nominal_seen_lines:
+        continue
+    for pat in (pattern_nominal, pattern_nominal_shell):
+        m = re.search(pat, line)
+        if m:
+            nominal_seen_lines.add(i)
             nominal_matches.append((i, m.group()))
-    for m in re.finditer(pattern_nominal_shell, line):
-        key = (i, m.start())
-        if key not in nominal_seen:
-            nominal_seen.add(key)
-            nominal_matches.append((i, m.group()))
+            break
 
 nominal_count = len(nominal_matches)
 if nominal_count > 0:
@@ -226,22 +222,23 @@ if nominal_count > 0:
 # 书面连接词密集（阈值 ≤ 3/300字）
 pattern_connectors = r'(因此|然而|此外|与此同时|不仅如此|从而|进而|继而|在此基础上|在这种情况下|从这个意义上说|随之而来的是|所以|但是|并且|而且|不过)'
 conn_matches = []
-conn_seen = set()  # dedup by (line, match_start_position)
+conn_seen_lines = set()  # dedup: each line counted at most once
 for i, line in enumerate(lines, 1):
-    for m in re.finditer(pattern_connectors, line):
-        key = (i, m.start())
-        if key not in conn_seen:
-            conn_seen.add(key)
-            conn_matches.append((i, m.group(), line.strip()[:120]))
+    if i in conn_seen_lines:
+        continue
+    m = re.search(pattern_connectors, line)
+    if m:
+        conn_seen_lines.add(i)
+        conn_matches.append((i, m.group(), line.strip()[:120]))
 
 conn_count = len(conn_matches)
 conn_pct = (conn_count / char_count * 100) if char_count > 0 else 0
-if conn_pct > 0.03:
+if conn_pct > 0.01:
     warnings.append({
         'family': '连接词族',
         'rule': '书面连接词密集（因此/然而/此外/所以/但是/并且/而且/不过…）',
         'count': conn_count,
-        'threshold': f'{conn_pct:.3f}% > 0.03%',
+        'threshold': f'{conn_pct:.3f}% > 0.01%',
         'examples': [(ln, txt) for ln, _, txt in conn_matches[:5]]
     })
 
