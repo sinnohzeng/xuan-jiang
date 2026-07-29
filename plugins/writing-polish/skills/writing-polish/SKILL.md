@@ -4,7 +4,7 @@ description: Coaches, drafts, polishes, and audits Chinese documents using 《�
 allowed-tools: Bash, Read, Edit, Write, Task
 ---
 
-# writing-polish v9.6
+# writing-polish v9.7
 
 任仲然《怎样写作》+ 正向引导 + 翻译腔检测 + ~80 条 AI 味红线 + clean-context 反馈式审校（Anthropic evaluator-optimizer 范式）。
 
