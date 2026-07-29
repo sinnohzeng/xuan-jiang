@@ -531,6 +531,37 @@ if [ "$ZIZHENG" -gt 0 ]; then
 else
     printf "  ${GRN}✓ 自证清白 / 自我宣告（字面层）: 0${NC}\n"
 fi
+
+# §2.7.1 取证过程自述（v9.6）：正文交代我方「怎么拿到材料」，而非材料本身。
+# 边界（内建豁免）：附表 / 脚注的「来源」列写明出处是本分，故**跳过 markdown 表格行**（`|` 开头）。
+# 本项只兜正文里的动作自述字面。参见 references/stance-and-register.md §4.4。
+QUZHENG_PAT="系(现场调研|访谈)所得|经(现场)?访谈所得|经多方(查找|检索)|按证据来源分|(核验|取证)路径|经反复(核实|查证)|我们(查阅|检索|走访)了"
+QUZHENG_HITS=$(grep -nE "$QUZHENG_PAT" "$FILE" | grep -vE '^[0-9]+:[[:space:]]*\|' || true)
+QUZHENG=$(printf '%s' "$QUZHENG_HITS" | grep -c . 2>/dev/null || echo 0)
+if [ "${QUZHENG:-0}" -gt 0 ]; then
+    printf "  ${YEL}⚠ 取证过程自述（讲我方动作而非材料，来源应下沉附表）: %d 处${NC}\n" "$QUZHENG"
+    printf '%s\n' "$QUZHENG_HITS" | head -5 | sed 's/^/    /'
+    WARNINGS=$((WARNINGS + 1))
+else
+    printf "  ${GRN}✓ 取证过程自述（正文层，表格来源列已豁免）: 0${NC}\n"
+fi
+
+# §2.9 改稿忠实性提示（v9.6，INFO 非 WARN）：引文块紧邻的转述句若含情态/动作动词，
+# 提示逐字回原文比对。脚本判不了是否改意，只负责把该核的位置指出来。
+# 依据 references/revision-fidelity.md §1 铁律一（考虑≠推进、可以≠应当）。
+QUOTE_ADJ=$(awk '
+  /^[[:space:]]*>/ { inq=1; next }
+  inq && NF==0 { next }
+  inq && NF>0 {
+    if ($0 ~ /(应当|必须|可以|不得|严禁|鼓励|原则上|考虑|推进|实施|完成|规定的是|设定的是|要求的是)/) print NR": "substr($0,1,60)
+    inq=0; next
+  }
+' "$FILE" 2>/dev/null | head -5)
+QUOTE_ADJ_N=$(printf '%s' "$QUOTE_ADJ" | grep -c . 2>/dev/null || echo 0)
+if [ "${QUOTE_ADJ_N:-0}" -gt 0 ]; then
+    printf "  ℹ 引文邻接转述 %d 处（非问题，提示核对）：逐字回原文核情态，考虑≠推进、可以≠应当\n" "$QUOTE_ADJ_N"
+    printf '%s\n' "$QUOTE_ADJ" | sed 's/^/    /'
+fi
 echo
 
 # ----------------------------------------------------------

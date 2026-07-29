@@ -4,7 +4,7 @@ description: Coaches, drafts, polishes, and audits Chinese documents using 《�
 allowed-tools: Bash, Read, Edit, Write, Task
 ---
 
-# writing-polish v9.5
+# writing-polish v9.6
 
 任仲然《怎样写作》+ 正向引导 + 翻译腔检测 + ~80 条 AI 味红线 + clean-context 反馈式审校（Anthropic evaluator-optimizer 范式）。
 
@@ -109,6 +109,10 @@ step 2 — clean-context reviewer(s)（按 references/reviewer-routing.md 分焦
   2.2 每个 reviewer 用 Task 工具 spawn writing-reviewer 子代理（clean context），任务 prompt 注入：
         draft 全文 + **§1 两个前置问题的答案（读者是谁 / 我是谁）** + 该 reviewer 的 focus 列表
         + constitution 对应体裁切片 + 当前日期 + 项目豁免清单
+        + **「既定策略，不要提改进建议」清单（v9.6 必填）**：客户/用户当场拍定的结论句、骨架、章序，
+          以及有意不写的内容（不进入的争论、不点的名、不补的理由）。
+          ⚠️ 不写这一段，reviewer 必然会把客户拍定的结论判成「代客决策」，主对话必然会照改 —— 
+          2026-07-28 实际发生过一次，把全篇存在理由的那句结论改没了（stance-and-register §2.0.1）。
         ⚠️ 不告诉 reviewer「谁写给谁看」，它判不了口吻。用户没交代就先问用户，不替用户假设。
   2.3 每 spawn 一行用户可见 [spawn writing-reviewer focus=立意+结构]；返回时 [verdict=要改]
   2.4 reviewer 返回 <overall-impression>（整体语感判断）+ <feedback>（按焦点分组 NL，每条含真人说法）+ <verdict>够好了|要改|红线未清</verdict>
@@ -125,6 +129,11 @@ step 2.5 — 诊断摘要（用户确认闸门）
 
 step 3 — 修改 draft（single-linear-writer，主对话串行，见 §4.5）
   3.1 先备份：cp <draft> <draft>.polish-backup-$(date +%s).md
+  3.1.5 **忠实性自查（不可省，v9.6，见 references/revision-fidelity.md）**：对照**原稿**（不是改后稿）核三条：
+        ① 引文的情态与语气未被改动（考虑≠推进、可以≠应当、鼓励≠要求、原则上不得≠不得）
+        ② 本轮没有让原稿没有的事实断言凭空出现（时序/因果/动机/定性四种伪装）
+        ③ 引用的条款，其义务主体确实是本文要派活的那个主体（分款条文逐款读主语）
+        改口吻、降 AI 味**都不得以牺牲忠实性为代价**；冲突优先序见 revision-fidelity §3
   3.2 有序单维 sweep（先大后小，一轮走完不跳回）：
         ① 口吻与站位（**第一顺位**，对照 [`references/stance-and-register.md`](references/stance-and-register.md)）：
            口吻六检（祈使/既往/代客决策/多想/谦抑/温度）→ 自证清白与自我宣告过渡
@@ -232,7 +241,7 @@ python3 scripts/docx-review-workflow.py <input.docx> <output.docx>           # �
 | Mode | 必读 | 按需 |
 |---|---|---|
 | **Coach** | [`references/stance-and-register.md`](references/stance-and-register.md) §1-§2（定站位，**动笔前必读**） + `references/coach-checkpoints.md` + `references/writing-coaching-arc.md` + `assets/anchor-essays/` | 体裁后 `references/genre-guide.md` §<X>；成稿阶段 `references/positive-chinese-guide.md` |
-| **Polish** | `agents/writing-reviewer.md` + `references/reviewer-routing.md` + [`references/stance-and-register.md`](references/stance-and-register.md)（第一顺位焦点，**必读**） | reviewer 判依据 → [`references/constitution.md`](references/constitution.md) 体裁切片；step 3 改稿 → [`references/revision-checklist.md`](references/revision-checklist.md)；结构与论据焦点 → [`references/logic-and-structure.md`](references/logic-and-structure.md)；声音匹配（G6/G7）→ [`references/voice-matching.md`](references/voice-matching.md)；翻译腔与正向语感（step 3 第 ⑤ 维）→ [`references/positive-chinese-guide.md`](references/positive-chinese-guide.md) |
+| **Polish** | `agents/writing-reviewer.md` + `references/reviewer-routing.md` + [`references/stance-and-register.md`](references/stance-and-register.md)（第一顺位焦点，**必读**） + [`references/revision-fidelity.md`](references/revision-fidelity.md)（step 3.1.5 忠实性自查，**必读**） | reviewer 判依据 → [`references/constitution.md`](references/constitution.md) 体裁切片；step 3 改稿 → [`references/revision-checklist.md`](references/revision-checklist.md)；结构与论据焦点 → [`references/logic-and-structure.md`](references/logic-and-structure.md)；声音匹配（G6/G7）→ [`references/voice-matching.md`](references/voice-matching.md)；翻译腔与正向语感（step 3 第 ⑤ 维）→ [`references/positive-chinese-guide.md`](references/positive-chinese-guide.md) |
 | **Audit** | `scripts/scan-ai-taste.sh` | L1 fail → `references/anti-ai-taste-anchors.md` |
 
 完整资源路由 → [`references/resource-routing.md`](references/resource-routing.md)（按需加载）。任仲然 12 讲继承审计 → [`references/renzhongran-coverage-matrix.md`](references/renzhongran-coverage-matrix.md)。

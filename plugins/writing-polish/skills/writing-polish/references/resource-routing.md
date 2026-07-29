@@ -13,6 +13,7 @@
 | [`constitution.md`](constitution.md) | polish | reviewer 必读自己分到焦点对应的体裁切片（§0 焦点 + §0.5 正向实质 + §2 体裁 + §3/§4 例外） |
 | [`coach-checkpoints.md`](coach-checkpoints.md) | coach | Coach 生产弧全程（立意→构思→提纲→材料→结构 checkpoint） |
 | [`revision-checklist.md`](revision-checklist.md) | polish | step 3 修改阶段决策依据 |
+| [`revision-fidelity.md`](revision-fidelity.md) | polish | step 3.1.5 忠实性自查：引文情态 / 不新增事实 / 条款主体 |
 | [`genre-guide.md`](genre-guide.md) §<X> | all | 体裁判断后读对应章节 |
 | [`writing-methodology.md`](writing-methodology.md) | coach, polish | Coach 准备 + 立意/结构/材料 焦点判依据来源 |
 | [`writing-coaching-arc.md`](writing-coaching-arc.md) | coach | “教我写作 / 练笔”技能弧（摹仿→制造→创造） |
