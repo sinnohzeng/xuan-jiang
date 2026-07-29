@@ -4,7 +4,7 @@ description: Coaches, drafts, polishes, and audits Chinese documents using 《�
 allowed-tools: Bash, Read, Edit, Write, Task
 ---
 
-# writing-polish v9.2
+# writing-polish v9.3
 
 任仲然《怎样写作》+ 正向引导 + 翻译腔检测 + ~80 条 AI 味红线 + clean-context 反馈式审校（Anthropic evaluator-optimizer 范式）。
 
@@ -75,11 +75,13 @@ v9.1 将 Polish Protocol 4 步在概念上映射为三阶段：
 
 按 [`references/coach-checkpoints.md`](references/coach-checkpoints.md) 走 立意→构思→提纲→材料→结构 五段，每段一个用户确认 checkpoint（**默认可跳过，不强制**）。要点：
 
-0. **三个吃透**（可选，不强制 checkpoint）：
-   ① 吃透意图：这篇稿子要传达什么核心信息？
-   ② 吃透受众：谁在读/听？他们关心什么？
-   ③ 吃透素材：有哪些现成材料可用？
-   → 如果用户说不清，先帮他们做调研确认，再进立意
+0. **定站位 + 三个吃透（v9.3 起排在判体裁之前，前两问不可跳）**：
+   ① **读者是谁**（不可跳）：什么单位、什么层级、什么专业背景、拿这份材料去干什么。「客户」不算答案，「协会信息技术部主任，处级，不懂技术细节，明天拿去向副秘书长汇报」才算。
+   ② **我是谁**（不可跳）：什么机构、与读者是什么关系、有没有资格下判断、有没有资格提要求。
+   ③ 吃透意图：这篇稿子要传达什么核心信息？
+   ④ 吃透素材：有哪些现成材料可用？
+   → ①② 的答案决定全篇口吻，**答不上来先问用户，不替用户假设**；判依据见 [`references/stance-and-register.md`](references/stance-and-register.md) §1-§2
+   → ③④ 用户说不清，先帮他们做调研确认，再进立意
 1. **准备**：判体裁 → 读 [`references/genre-guide.md`](references/genre-guide.md) §<体裁> + [`references/writing-methodology.md`](references/writing-methodology.md) + 选 [`assets/real-world-anchors/`](assets/real-world-anchors/) 同体裁锚本。
 2. **立意 ✋**：收敛到“一个”核心问题（拒“全而又全”）+ 小切口→大思路 + 列观察日志（3-5 条具体细节）。
 3. **提纲 ✋**：粗纲 → 细纲（每段 1 行判断）+ 标注同级并列/递进。提纲早出手、初稿晚出手。
@@ -99,9 +101,15 @@ step 1 — L1 hard gate
 
 step 2 — clean-context reviewer(s)（按 references/reviewer-routing.md 分焦点）
   2.0 字数闸：draft < 500 字经明示触发词（润色/改稿）进入 Polish 是**合法边界**（§1.2 只把歧义词的短稿默认路由到 Audit，不拦明示润色）；此档**可省 reviewer**（L1 脚本 + 主对话自审即可），≥ 500 字才 spawn ≥ 1 reviewer
-  2.1 定 reviewer 数与各自 focus（按长度/体裁分摊焦点，见 routing 决策表）
+  2.0.1 **reviewer 不可省铁律（v9.3）**：≥ 500 字的稿子，**脚本全绿不等于通过，禁止只跑 scan 就宣布 PASS / 够好了**。
+        口吻与站位、语体错位、自证清白这三类没有固定词形，grep 结构上抓不到（见 references/stance-and-register.md §6）；
+        主对话写了这稿、对自己的措辞已脱敏，**自审不能替代 clean-context reviewer**。
+        本轮未 spawn 过 reviewer 而输出 verdict = 协议违规。
+  2.1 定 reviewer 数与各自 focus（按长度/体裁分摊焦点，见 routing 决策表）；**「口吻与站位」焦点每轮必须被覆盖，不得分摊掉**
   2.2 每个 reviewer 用 Task 工具 spawn writing-reviewer 子代理（clean context），任务 prompt 注入：
-        draft 全文 + 该 reviewer 的 focus 列表 + constitution 对应体裁切片 + 当前日期 + 项目豁免清单
+        draft 全文 + **§1 两个前置问题的答案（读者是谁 / 我是谁）** + 该 reviewer 的 focus 列表
+        + constitution 对应体裁切片 + 当前日期 + 项目豁免清单
+        ⚠️ 不告诉 reviewer「谁写给谁看」，它判不了口吻。用户没交代就先问用户，不替用户假设。
   2.3 每 spawn 一行用户可见 [spawn writing-reviewer focus=立意+结构]；返回时 [verdict=要改]
   2.4 reviewer 返回 <overall-impression>（整体语感判断）+ <feedback>（按焦点分组 NL，每条含真人说法）+ <verdict>够好了|要改|红线未清</verdict>
   2.5 失败 retry 1 次（2s 退避）；2 次失败记 missing-review → **不进 step 3 自动改稿，直接上报用户“reviewer 不可用、本次仅 L1 硬扫结果”**（不静默降级 = fix-the-tool-don't-fallback）
@@ -118,13 +126,18 @@ step 2.5 — 诊断摘要（用户确认闸门）
 step 3 — 修改 draft（single-linear-writer，主对话串行，见 §4.5）
   3.1 先备份：cp <draft> <draft>.polish-backup-$(date +%s).md
   3.2 有序单维 sweep（先大后小，一轮走完不跳回）：
-        ① 达意/立意（改到位）→ ② 空话与口水（空话可证伪测试 + 模糊副词）
-        → ③ 结构与论据（层级/So-What 收口）→ ④ 标点与体裁 AI 味（红线 + 软信号）
-        → ⑤ 翻译腔与正向语感（对照 [`references/positive-chinese-guide.md`](references/positive-chinese-guide.md)）：
+        ① 口吻与站位（**第一顺位**，对照 [`references/stance-and-register.md`](references/stance-and-register.md)）：
+           口吻六检（祈使/既往/代客决策/多想/谦抑/温度）→ 自证清白与自我宣告过渡
+           → 语体一致性（run-in 小标题须为事项名、章节标题措辞、正文口语渗入）
+        → ② 达意/立意（改到位）→ ③ 空话与口水（空话可证伪测试 + 模糊副词）
+        → ④ 结构与论据（层级/So-What 收口）→ ⑤ 标点与体裁 AI 味（红线 + 软信号）
+        → ⑥ 翻译腔与正向语感（对照 [`references/positive-chinese-guide.md`](references/positive-chinese-guide.md)）：
            检查翻译腔四族反模式（长定语族/被动名词化族/连接词族/形式主语族）；
            应用正向思维（不是"删坏词"而是"让这句话更像真人说的"）；
            长稿/讲话稿做念改检查（默念关键段落，口耳不协调 = 还需改）
-      sweep 深度按稿长分档（**独立于 §1.2 mode 路由表**，只管本 step 跑几维）：< 500 字只跑 ①④ 两维；≥ 500 字全 5 维。
+      sweep 深度按稿长分档（**独立于 §1.2 mode 路由表**，只管本 step 跑几维）：< 500 字只跑 ①②⑤ 三维（① 任何长度都跑）；≥ 500 字全 6 维。
+      ⚠️ **软阈值不是改稿目标**：为把 scan 某项计数降下来而把书面表述换成口语（「这一部分」→「大头」），
+         是用工具指标换文风质量，方向错误。降密度靠删空话，不靠降语体（stance-and-register §5.4）。
   3.3 reviewer 反馈在本轮 step 2 已一次性覆盖全焦点，step 3 据其分维改，**同一轮内不每维重 spawn reviewer**（避免 O(N²)；跨轮重 spawn 见 step 4.2）
   3.4 行号倒序修改（避免 offset 漂移）；draft > 5000 字 → 分段串行
   3.5 高影响操作（整段重写导语 / 删整节）走 checkpoint 征询用户，不设数字改动帽
@@ -171,16 +184,19 @@ python3 scripts/docx-review-workflow.py <input.docx> <output.docx>           # �
 3. **元注释**：作为一个 AI 助手 / 让我为您整理 / 希望对您有帮助 / 以上仅供参考
 4. **戏剧化叙事**：三层防御 / 跑通 / 翻车 / 大刀阔斧 / 一战成名（IT 实物语境例外，scan ±2 行白名单）
 
-## §4 三大审查焦点 + 红线（NL，reviewer 据此分组反馈）
+## §4 五大审查焦点 + 红线（NL，reviewer 据此分组反馈）
 
-> SSOT: [`references/constitution.md`](references/constitution.md) §0“四大审查焦点”+ §0.5“正向实质三焦点”。per-use 不打数值分。
+> SSOT: [`references/constitution.md`](references/constitution.md) §0“五大审查焦点”+ §0.4“口吻与站位”+ §0.5“正向实质三焦点”。per-use 不打数值分。
 
 | 焦点 | 好的样子 | 差的样子 |
 |---|---|---|
+| **口吻与站位**（第一顺位） | 身份关系摆正、要求归还给制度、缺口写成下一步 | 命令式指挥客户、批评既往、替客户拍板、让下属多想 |
 | **立意** | 一文一主题、小切口大思路、有穿透力 | 全而又全、开篇堆大词、平淡正确 |
 | **结构与论据** | 同级层次清楚、结构服务内容、论点到论据的链条连贯 | 僵化三段式、并列失衡、论证跳跃 |
 | **材料·事实** | 货真价实、多样、有数据；事实三态分明 | 模糊副词堆砌、缺数据支撑、编造/含糊归因 |
 | **AI味·标点·翻译腔** | 平实克制、标点合规、句式自然 | 黑词密集、翻译腔骨架、ASCII 标点、否定平行 |
+
+**口吻与站位为什么排第一**（v9.3 新增）：立意 / 结构 / 材料 / AI 味出问题是「不够好」，站位出问题是「不能用」。动笔前先答两问：**读者是谁**（单位、层级、专业背景、拿去干什么）、**我是谁**（机构、与读者的关系、有没有资格下判断和提要求）。答不上来先问用户，不替用户假设。判依据全文见 [`references/stance-and-register.md`](references/stance-and-register.md)。
 
 **事实敬畏三态**（材料焦点核心）：① 已有材料可证实 → 用；② 用户未提供需追问 → 列清单问用户，不替写；③ 不得替用户编造。
 
@@ -215,8 +231,8 @@ python3 scripts/docx-review-workflow.py <input.docx> <output.docx>           # �
 
 | Mode | 必读 | 按需 |
 |---|---|---|
-| **Coach** | `references/coach-checkpoints.md` + `references/writing-coaching-arc.md` + `assets/anchor-essays/` | 体裁后 `references/genre-guide.md` §<X>；成稿阶段 `references/positive-chinese-guide.md` |
-| **Polish** | `agents/writing-reviewer.md` + `references/reviewer-routing.md` | reviewer 判依据 → [`references/constitution.md`](references/constitution.md) 体裁切片；step 3 改稿 → [`references/revision-checklist.md`](references/revision-checklist.md)；结构与论据焦点 → [`references/logic-and-structure.md`](references/logic-and-structure.md)；声音匹配（G6/G7）→ [`references/voice-matching.md`](references/voice-matching.md)；翻译腔与正向语感（step 3 第 ⑤ 维）→ [`references/positive-chinese-guide.md`](references/positive-chinese-guide.md) |
+| **Coach** | [`references/stance-and-register.md`](references/stance-and-register.md) §1-§2（定站位，**动笔前必读**） + `references/coach-checkpoints.md` + `references/writing-coaching-arc.md` + `assets/anchor-essays/` | 体裁后 `references/genre-guide.md` §<X>；成稿阶段 `references/positive-chinese-guide.md` |
+| **Polish** | `agents/writing-reviewer.md` + `references/reviewer-routing.md` + [`references/stance-and-register.md`](references/stance-and-register.md)（第一顺位焦点，**必读**） | reviewer 判依据 → [`references/constitution.md`](references/constitution.md) 体裁切片；step 3 改稿 → [`references/revision-checklist.md`](references/revision-checklist.md)；结构与论据焦点 → [`references/logic-and-structure.md`](references/logic-and-structure.md)；声音匹配（G6/G7）→ [`references/voice-matching.md`](references/voice-matching.md)；翻译腔与正向语感（step 3 第 ⑤ 维）→ [`references/positive-chinese-guide.md`](references/positive-chinese-guide.md) |
 | **Audit** | `scripts/scan-ai-taste.sh` | L1 fail → `references/anti-ai-taste-anchors.md` |
 
 完整资源路由 → [`references/resource-routing.md`](references/resource-routing.md)（按需加载）。任仲然 12 讲继承审计 → [`references/renzhongran-coverage-matrix.md`](references/renzhongran-coverage-matrix.md)。

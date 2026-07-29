@@ -498,6 +498,42 @@ check_red "首先.{0,30}其次.{0,30}(最后|再者|然后|最终)" "$FILE" "首
 echo
 
 # ----------------------------------------------------------
+# §2.5.1 / §2.7 口语渗入 + 自证清白（v9.3 软 WARN，非红线）
+# ----------------------------------------------------------
+# 定位：这两类的**多数**形态没有固定词形，grep 结构上抓不到（详
+# references/stance-and-register.md §6）。本段只兜住有确定字面的那一小部分，
+# **命中即软 WARN，未命中绝不等于通过** —— 判定主体是 clean-context reviewer 的
+# 「口吻与站位」焦点。禁止把本段的 ✓ 当作该焦点已核查。
+echo "▼ §2.5.1/§2.7 口语渗入 + 自证清白（v9.3 软 WARN；主判在 reviewer，脚本仅兜字面）"
+
+# G2 讲话稿 / G6 随笔 / G7 自媒体允许口语，豁免口语渗入项
+case "$GENRE" in
+    G2|G6|G7)
+        printf "  ${GRN}✓ 口语渗入: %s 体裁豁免${NC}\n" "$GENRE" ;;
+    *)
+        KOUYU_PAT="大头(在|是)|算谁的|各管各的|各管一头|差在哪|好在哪儿|到底有没有|还做不做|能不能行|出了事|说白了|简单讲|这一摊|不外乎|无非是|一样适用|讲的(是|就是)|说的(是|就是)|装的(是|正是)|合起来是一句话|照做"
+        KOUYU=$(count_pattern "$KOUYU_PAT" "$FILE")
+        if [ "$KOUYU" -gt 0 ]; then
+            printf "  ${YEL}⚠ 口语渗入（书面语体应改写）: %d 处${NC}\n" "$KOUYU"
+            grep -nE "$KOUYU_PAT" "$FILE" | head -5 | sed 's/^/    /'
+            WARNINGS=$((WARNINGS + 1))
+        else
+            printf "  ${GRN}✓ 口语渗入（字面层）: 0${NC}\n"
+        fi ;;
+esac
+
+ZIZHENG_PAT="白纸黑字|不是我们(的判断|说的)|也许有人会问|可能有人会(问|质疑)|需要(特别)?指出的是|值得注意的是|必须强调|这一点很重要|下面从.{0,4}(个)?方面|本文将从|综上所述|由此可见|确有先例|直接例证|这里要说明的是"
+ZIZHENG=$(count_pattern "$ZIZHENG_PAT" "$FILE")
+if [ "$ZIZHENG" -gt 0 ]; then
+    printf "  ${YEL}⚠ 自证清白 / 自我宣告过渡（删掉论证是否照样成立）: %d 处${NC}\n" "$ZIZHENG"
+    grep -nE "$ZIZHENG_PAT" "$FILE" | head -5 | sed 's/^/    /'
+    WARNINGS=$((WARNINGS + 1))
+else
+    printf "  ${GRN}✓ 自证清白 / 自我宣告（字面层）: 0${NC}\n"
+fi
+echo
+
+# ----------------------------------------------------------
 # §4 软阈值（密度限制，v4.3 按文长动态化）
 # ----------------------------------------------------------
 SENT_COUNT=$(sentence_count "$FILE")
@@ -776,11 +812,15 @@ echo
 # 总结
 echo "================================================"
 if [ "$VIOLATIONS" -eq 0 ] && [ "$WARNINGS" -eq 0 ]; then
-    printf "${GRN}✅ PASS — 全部红线和软阈值通过，可以交付${NC}\n"
+    printf "${GRN}✅ L1 PASS — 全部红线和软阈值通过${NC}\n"
+    printf "${YEL}⚠ L1 PASS ≠ 可以交付${NC}：本脚本只覆盖有固定词形的那一层。\n"
+    echo "   口吻与站位、语体错位（run-in 小标题写成论证旁白）、自证清白这三类"
+    echo "   没有固定词形，grep 结构上抓不到。≥ 500 字的稿子须再派 clean-context"
+    echo "   reviewer（focus 含「口吻与站位」）才能判交付。详 SKILL §2.2 step 2.0.1。"
     exit 0
 elif [ "$VIOLATIONS" -eq 0 ]; then
     printf "${YEL}⚠ WARN — 红线全过，但有 %d 项软阈值警告${NC}\n" "$WARNINGS"
-    echo "建议：根据上述软阈值警告进一步润色后交付"
+    echo "建议：根据上述软阈值警告进一步润色；软阈值超标靠删空话，不靠把书面语换成口语"
     exit 2
 else
     printf "${RED}✗ FAIL — 有 %d 项硬红线违规，禁止交付${NC}\n" "$VIOLATIONS"
