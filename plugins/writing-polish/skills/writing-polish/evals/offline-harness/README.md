@@ -20,3 +20,8 @@
 ## 为什么在这里而不在 per-use 路径
 
 数值逐维打分（G-Eval / Prometheus / MT-Bench 流派）的价值是**可聚合、可跨样本比较**：这是离线衡量“polisher 本身好不好”需要的，不是单篇改稿需要的。单篇改稿要的是“指到具体句 + 怎么改”的可执行反馈，一个分数没法直接编辑。详 SKILL.md §0 两世界拆分。
+
+## Backlog（v10.0 记）
+
+- **LLM-as-judge 长度偏差防范**：2026 年中实践（rubric-based evals，来源见 `docs/research/2026-08-03-best-practices.md` 第 8 条）指出数值判官偏好长输出，需显式防范（长度归一或成对比较）；且判词必须可行动。下次迭代 `llm-judge-research-report.md` 的判官 prompt 时补上。
+- **腾讯朱雀 AI 检测**（matrix.tencent.com/ai-detect）：仅列为离线打榜的可选外部镜子，不进 per-use 热路径，不作交付判据（constitution 非目标：别优化 AI 检测器）。
