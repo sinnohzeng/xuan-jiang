@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scan-ai-taste.sh —— writing-polish v9.2 L1 hard gate
+# scan-ai-taste.sh —— writing-polish v10.0 L1 hard gate
 #
 # 角色：交付前 AI 味自检（L1 硬扫）+ JSON 输出供主对话 / writing-reviewer 路由决策。
 # 在交付任何修改稿前必跑。任何硬约束未达标，禁止交付。
@@ -140,7 +140,7 @@ draft_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
 
 if mode == 'json':
     result = {
-        "version": "9.2",
+        "version": "10.0.0",
         "file": os.path.abspath(file_path),
         "draft_hash": draft_hash,
         "exit_code": exit_code,
@@ -165,10 +165,10 @@ if log_to:
         os.makedirs(log_dir, exist_ok=True)
     final_action = "soft_warning" if exit_code == 2 else "failed" if exit_code == 1 else "error" if exit_code == 3 else "passed"
     log_entry = {
-        "version": "9.2",
+        "version": "10.0.0",
         "timestamp": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         "draft_hash": draft_hash,
-        "protocol": "v9.2",
+        "protocol": "v10.0",
         "mode": "audit",
         "scan_summary": {
             "red_line_violations_total": red_total,
@@ -378,7 +378,7 @@ check_dash_with_legal_exempt() {
 }
 
 echo "================================================"
-echo "       AI 味红线扫描 v9.2"
+echo "       AI 味红线扫描 v10.0"
 echo "       文件：$ORIG_FILE"
 [ "$MODE" = "suggest" ] && echo "       模式：建议改写"
 echo "================================================"
@@ -537,7 +537,7 @@ fi
 # 本项只兜正文里的动作自述字面。参见 references/stance-and-register.md §4.4。
 QUZHENG_PAT="系(现场调研|访谈)所得|经(现场)?访谈所得|经多方(查找|检索)|按证据来源分|(核验|取证)路径|经反复(核实|查证)|我们(查阅|检索|走访)了"
 QUZHENG_HITS=$(grep -nE "$QUZHENG_PAT" "$FILE" | grep -vE '^[0-9]+:[[:space:]]*\|' || true)
-QUZHENG=$(printf '%s' "$QUZHENG_HITS" | grep -c . 2>/dev/null || echo 0)
+QUZHENG=$(printf '%s' "$QUZHENG_HITS" | awk 'END{print NR}')
 if [ "${QUZHENG:-0}" -gt 0 ]; then
     printf "  ${YEL}⚠ 取证过程自述（讲我方动作而非材料，来源应下沉附表）: %d 处${NC}\n" "$QUZHENG"
     printf '%s\n' "$QUZHENG_HITS" | head -5 | sed 's/^/    /'
@@ -557,7 +557,7 @@ QUOTE_ADJ=$(awk '
     inq=0; next
   }
 ' "$FILE" 2>/dev/null | head -5)
-QUOTE_ADJ_N=$(printf '%s' "$QUOTE_ADJ" | grep -c . 2>/dev/null || echo 0)
+QUOTE_ADJ_N=$(printf '%s' "$QUOTE_ADJ" | awk 'END{print NR}')
 if [ "${QUOTE_ADJ_N:-0}" -gt 0 ]; then
     printf "  ℹ 引文邻接转述 %d 处（非问题，提示核对）：逐字回原文核情态，考虑≠推进、可以≠应当\n" "$QUOTE_ADJ_N"
     printf '%s\n' "$QUOTE_ADJ" | sed 's/^/    /'
