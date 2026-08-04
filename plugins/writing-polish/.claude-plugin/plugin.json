@@ -1,6 +1,6 @@
 {
   "name": "writing-polish",
-  "version": "9.7.0",
+  "version": "10.0.0",
   "description": "中文写作助手，基于《怎样写作》(任仲然)。四模式：coach 教你写 / polish 润色审稿去 AI 味 / audit 快速自检 / express 快速表达。强制 GB/T 15834 弯引号，拦截公文黑词、元注释、戏剧化叙事；覆盖公文 / 讲话稿 / 调研 / 述职 / 汇报 / 随笔 / 自媒体 / 咨询 八类体裁。",
   "author": {
     "name": "sinnohzeng"

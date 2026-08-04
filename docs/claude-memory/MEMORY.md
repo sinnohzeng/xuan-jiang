@@ -2,6 +2,7 @@
 
 ## 当前依据（current）
 
+- [v10.0 站位四问前置与场景包](feedback_v10.0-stance-first-scenarios.md) — 站位四问为全模式第一环节；读者谱系扩非工作场景；G2 听众反应预演与稿件血统溯源闸门；scenarios 场景包 progressive disclosure
 - [v7.0 两世界拆分](feedback_v7.0-two-world-split.md) — per-use 自然语言反馈 + 离线数值评分；为何删 per-use 评分链；补任仲然立文实质轴（立意/结构/材料）；reviewer 是只读 clean-context 子代理
 - [v4.3 上下文白名单设计反思](feedback_v4.3-context-whitelist.md) — 硬词典 → 词典 + ±2 行扩窗白名单、千句密度动态阈值、过度工程边界（仍适用的方法论判断）
 - [永远自动 commit+push](feedback_auto-commit-push.md) — 完成任何变更后直接 commit + push 远端，不再询问；force push / 部署敏感分支 / secrets 例外
