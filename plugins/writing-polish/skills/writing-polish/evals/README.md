@@ -15,9 +15,9 @@
 | `eval-set.jsonl` | 离线一致性 + regression 测试 | ❌ **禁止注入任何 prompt**（Grader Gaming 红线） |
 | `fixtures/*.md` | L1 `scan-ai-taste.sh` 输入回归稿（7 个含正反哨兵，含 `neg-parallel-dense.md` 锁 DoD#2(c)） | n/a |
 | `trigger-calibration.md` | 触发 / 路由校准 harness（技能调用轴 + mode 路由轴 + G8 reviewer 抽检，**人在环手动跑**） | ❌ 离线 |
+| `redline-sentinel-set.jsonl` | L1 硬红线哨兵集（73 条），每条带 `expect` 与 v10.1 重标字段 `expect_v10_1`（24 FAIL / 3 WARN / 46 PASS） | ❌ 离线 |
 | `offline-harness/` | 数值判官 prompt + few-shot 选取 + split 工具 + scan 最小集 + eval-record schema | ❌ 仅离线 |
 | `v6.0-baseline/` | 历史 release gate 对比快照（v5.1 vs v6.0） | n/a（archive） |
-| `legacy/v5.x/` | v5.x dev-only 资产（归档，不维护） | n/a（archive） |
 
 ## §2 隔离铁律（防 Grader Gaming）
 
@@ -60,3 +60,13 @@ bash offline-harness/split-calibration.sh --force      # 刷新 anchor / eval
 - 不要手动编辑 `anchor-set.jsonl` / `eval-set.jsonl`（会被下次 split 覆盖）。
 - 新样本若已人工核验，标 `verified: true`（进 anchor 池）；否则默认进 eval 池。
 - κ / inter-rater 一致性是离线衡量手段，不是 per-use 产物；不要在改稿输出里出现分数。
+
+## §6 v10.1 变更登记与回归项（2026-08-04）
+
+1. **哨兵集重标**：`redline-sentinel-set.jsonl` 全部 73 条按新红线集合加标 `expect_v10_1` / `expect_v10_1_reason`——本轮降级项（8 个公文合法词、破折号、三段式、密度）改判 WARN/PASS，保留红线（paren / cn_hard 7 词 / 对标 / 引号 §1.4.113）仍 FAIL。脚本手术后实跑对拍 73/73 自洽。
+2. **`legacy/v5.x/` 已删**（1.1MB 死重，git 历史可查）。
+3. **新回归项：一致性哨兵** `scripts/check-rule-consistency.sh`——机械比对 `references/anti-ai-taste-anchors.md` §1.1 词表与 `scan-ai-taste.sh` CN_HARD 正则是否逐字一致（offline-harness 无统一回归入口，故在此登记）。**改硬禁词表时必须跑**：
+
+```bash
+bash ../scripts/check-rule-consistency.sh   # exit 0 一致；1 漂移；3 提取失败
+```

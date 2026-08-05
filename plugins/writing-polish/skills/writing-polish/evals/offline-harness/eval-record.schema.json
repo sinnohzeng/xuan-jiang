@@ -9,7 +9,8 @@
   "properties": {
     "version": {
       "type": "string",
-      "enum": ["6.0", "6.1", "8.0"]
+      "enum": ["6.0", "6.1", "8.0", "10.1.0"],
+      "description": "Record format/plugin stamp. v10.1.0 debt fix: enum aligned with scan-ai-taste.sh --log-to output."
     },
     "model": {
       "type": "string",
@@ -26,8 +27,8 @@
     },
     "protocol": {
       "type": "string",
-      "enum": ["v5.1", "v6.0", "v6.1", "v8.0"],
-      "description": "Which polish protocol produced this record; used for cross-version comparison. v6.1 = 0-3 scale + L3 mandatory + L2 trace-file留痕；v8.0 = per-use 自然语言反馈 + 粗判（不打数值分），scan 软信号下沉 reviewer"
+      "enum": ["v5.1", "v6.0", "v6.1", "v8.0", "v10.1"],
+      "description": "Which polish protocol produced this record; used for cross-version comparison. v6.1 = 0-3 scale + L3 mandatory + L2 trace-file留痕；v8.0 = per-use 自然语言反馈 + 粗判（不打数值分），scan 软信号下沉 reviewer；v10.1 = 机械层收缩，硬红线只留无歧义集，语境判断全交 reviewer"
     },
     "mode": {
       "type": "string",
@@ -62,7 +63,8 @@
     },
     "final_action": {
       "type": "string",
-      "enum": ["passed", "fixed", "rolled_back"]
+      "enum": ["passed", "fixed", "rolled_back", "soft_warning", "failed", "error"],
+      "description": "v10.1.0 debt fix: aligned with scan-ai-taste.sh --log-to exit-code mapping (0=passed, 1=failed, 2=soft_warning, 3=error); fixed/rolled_back remain for full polish-session records."
     },
     "rules_not_covered_but_feels_off": {
       "type": "array",

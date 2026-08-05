@@ -9,8 +9,7 @@
   "properties": {
     "version": {
       "type": "string",
-      "const": "9.0",
-      "description": "Schema version, bumps on break change"
+      "description": "Plugin version stamp (tracks plugin.json, e.g. 10.1.0). This is NOT the schema version; JSON structure changes bump only when breaking. Not constrained by const to avoid per-release drift (v10.1.0 debt fix: const was stale at 9.0 since v9)."
     },
     "file": {
       "type": "string",
