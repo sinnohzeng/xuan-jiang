@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scan-translationese.sh —— writing-polish v10.0 翻译腔句法软扫描
+# scan-translationese.sh —— writing-polish v10.1 翻译腔句法软扫描
 #
 # 用法：
 #   bash scan-translationese.sh <file.md>
@@ -28,7 +28,7 @@ MODE="human"
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
     cat <<'HELP'
-scan-translationese.sh —— writing-polish v10.0 翻译腔句法软扫描
+scan-translationese.sh —— writing-polish v10.1 翻译腔句法软扫描
 
 用法：
   bash scan-translationese.sh <file.md>
@@ -290,7 +290,7 @@ if mode == 'json':
             })
 
     result = {
-        "version": "10.0.0",
+        "version": "10.1.0",
         "scanner": "translationese",
         "file": os.path.abspath(file_path),
         "draft_hash": draft_hash,
@@ -318,7 +318,7 @@ if mode == 'json':
 else:
     # 人类可读输出
     print("================================================")
-    print("       翻译腔句法软扫描 v10.0")
+    print("       翻译腔句法软扫描 v10.1")
     print(f"       文件：{file_path}")
     print(f"       字数：{char_count}")
     print("================================================")

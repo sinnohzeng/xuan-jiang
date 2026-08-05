@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
-# scan-ai-taste.sh —— writing-polish v10.0 L1 hard gate
+# scan-ai-taste.sh —— writing-polish v10.1 L1 hard gate
 #
 # 角色：交付前 AI 味自检（L1 硬扫）+ JSON 输出供主对话 / writing-reviewer 路由决策。
 # 在交付任何修改稿前必跑。任何硬约束未达标，禁止交付。
 #
 # v9.0 白熊效应治理：精简硬红线 ~40 条（删除英文词汇红线、低频近义变体），
 #   软信号下沉 reviewer NL 判断，保留上下文白名单 + 句长方差 + 结构检测。
+#
+# v10.1 收缩机械化：CN_HARD 15→7 词（公文合法词 8 个降为软信号）；破折号 / 三段式
+#   降为软 WARN；密度提示标注「不作改稿目标」；删 fix_word 逐词替换与 GENRE=auto 占位。
+#   硬红线只减不增；语境判断交 reviewer。硬禁词 SSOT：references/anti-ai-taste-anchors.md §1.1。
 #
 # 用法：
 #   bash scan-ai-taste.sh <file.md>                                # 标准扫描（人类可读）
@@ -23,7 +27,8 @@
 #
 # JSON 契约：assets/scan-output.schema.json
 # 日志契约：evals/offline-harness/eval-record.schema.json（离线 dev-eval）
-# 规则定义：references/anti-ai-taste-anchors.md（~80 条 SSOT，v9.0 精简版）
+# 规则定义：references/anti-ai-taste-anchors.md（§1.1 硬红线唯一 SSOT，v10.1 收缩版；
+#   脚本硬禁词必须与该节逐字一致，由 scripts/check-rule-consistency.sh 校验）
 
 set -uo pipefail
 
@@ -31,7 +36,7 @@ FILE=""
 MODE="standard"
 LOG_TO=""
 # GENRE 决定体裁豁免档：base（默认，CI 硬闸 / audit / dogfood，无体裁豁免，保留 context 语境白名单）
-# | G1-G8（Coach/Polish 由体裁推断显式传入，开启对应体裁的软化豁免）| auto（暂等同 base，未来做体裁自动判别）
+# | G1-G8（Coach/Polish 由体裁推断显式传入，开启对应体裁的软化豁免）
 GENRE="base"
 # legacy positional arg support
 if [ "${1:-}" != "" ] && [ "${1:0:2}" != "--" ]; then
@@ -48,8 +53,6 @@ while [ $# -gt 0 ]; do
         *) shift ;;
     esac
 done
-# 归一 GENRE：auto 暂等同 base（体裁自动判别未实现，诚实降级不假装）
-[ "$GENRE" = "auto" ] && GENRE="base"
 
 if [ -z "$FILE" ]; then
     echo "用法: bash scan-ai-taste.sh <file.md|--target file.md> [--suggest-fix|--json|--log-to <jsonl-path>]" >&2
@@ -140,7 +143,7 @@ draft_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()[:16]
 
 if mode == 'json':
     result = {
-        "version": "10.0.0",
+        "version": "10.1.0",
         "file": os.path.abspath(file_path),
         "draft_hash": draft_hash,
         "exit_code": exit_code,
@@ -165,10 +168,10 @@ if log_to:
         os.makedirs(log_dir, exist_ok=True)
     final_action = "soft_warning" if exit_code == 2 else "failed" if exit_code == 1 else "error" if exit_code == 3 else "passed"
     log_entry = {
-        "version": "10.0.0",
+        "version": "10.1.0",
         "timestamp": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
         "draft_hash": draft_hash,
-        "protocol": "v10.0",
+        "protocol": "v10.1",
         "mode": "audit",
         "scan_summary": {
             "red_line_violations_total": red_total,
@@ -324,29 +327,12 @@ suggest_for() {
     esac
 }
 
-# 逐词替换建议表（仅在 --suggest-fix 模式下输出）
-fix_word() {
-    case "$1" in
-        赋能) echo "帮 / 支持 / 让…能" ;;
-        抓手) echo "着力点 / 办法 / 突破口" ;;
-        闭环) echo "全流程管好 / 形成完整流程" ;;
-        打造) echo "建 / 做成 / 建成" ;;
-        助力) echo "帮 / 推动" ;;
-        链路) echo "环节 / 流程" ;;
-        拉通) echo "打通 / 协调" ;;
-        深度融合) echo "深度结合" ;;
-        提质增效) echo "提高质量和效率" ;;
-        多维度) echo "多方面 / 从几个角度" ;;
-        体系化) echo "成体系 / 系统地" ;;
-        跨界融合) echo "跨领域结合" ;;
-        重塑) echo "重新调整 / 重建" ;;
-        切实推动) echo "推动 / 抓落实" ;;
-        *) return 1 ;;
-    esac
-}
+# （v10.1 删除 fix_word 逐词替换建议表：references/failure-cases.md 案例 1 已证伪
+#  机械近义词替换——无语境的一对一个换词会制造新的假阳与反向改坏。）
 
-# §1.4.0 破折号检测（含法律/政策语境白名单，v9.1 新增）
-check_dash_with_legal_exempt() {
+# §1.4.0 破折号检测（v10.1 由硬红线降为软 WARN：GB/T 15834 合法标点，文体取舍交 reviewer；
+# 法律语境提示并入 WARN 措辞，v9.1 法律白名单改作语境标注）
+check_dash_soft() {
     local file="$1"
     local legal_kw="法律|法规|条例|条款|立法|司法|执法|法治|依法行政|《.*法》|《.*条例》|《.*规定》"
     local dash_re="——|—|――|―"
@@ -362,23 +348,25 @@ check_dash_with_legal_exempt() {
         context=$(sed -n "${lo},${hi}p" "$file")
         if echo "$context" | grep -qE "$legal_kw"; then
             exempted=$((exempted + 1))
-            printf "  ${GRN}✓ §1.4 破折号 L%s: 法律/政策语境豁免${NC}\n" "$lineno"
-        else
-            VIOLATIONS=$((VIOLATIONS + 1))
-            inc_section "s14" 1
-            printf "  ${RED}✗ §1.4 破折号 L%s${NC}\n" "$lineno"
-            sed -n "${lineno}p" "$file" | sed 's/^/    /'
+            printf "  ${GRN}✓ §1.4 破折号 L%s: 法律/政策语境${NC}\n" "$lineno"
         fi
     done < <(grep -nE "$dash_re" "$file")
+    local unexempted=$((hits - exempted))
     if [ "$hits" -eq 0 ]; then
         printf "  ${GRN}✓ §1.4 破折号 = 0${NC}\n"
-    elif [ "$hits" -eq "$exempted" ]; then
-        printf "  ${GRN}✓ §1.4 破折号: %d 处全部法律语境豁免${NC}\n" "$hits"
+    elif [ "$unexempted" -gt 0 ]; then
+        printf "  ${YEL}⚠ §1.4 破折号: %d 处（v10.1 软信号：GB/T 15834 合法标点，公文少用 / 随笔可用的文体取舍交 reviewer；法律语境常需原文引注，其中 %d 处落在法律/政策语境）${NC}\n" "$unexempted" "$exempted"
+        grep -nE "$dash_re" "$file" | head -5 | sed 's/^/    /'
+        [ "$MODE" = "suggest" ] && suggest_for dash
+        WARNINGS=$((WARNINGS + 1))
+        inc_section "s14" "$unexempted"
+    else
+        printf "  ${GRN}✓ §1.4 破折号: %d 处全部法律/政策语境${NC}\n" "$hits"
     fi
 }
 
 echo "================================================"
-echo "       AI 味红线扫描 v10.0"
+echo "       AI 味红线扫描 v10.1"
 echo "       文件：$ORIG_FILE"
 [ "$MODE" = "suggest" ] && echo "       模式：建议改写"
 echo "================================================"
@@ -387,8 +375,8 @@ echo
 # ----------------------------------------------------------
 # §1.4 标点红线（必须 = 0）
 # ----------------------------------------------------------
-echo "▼ §1.4 标点红线（阈值 = 0）"
-check_dash_with_legal_exempt "$FILE"
+echo "▼ §1.4 标点红线（阈值 = 0；破折号 v10.1 已降软 WARN）"
+check_dash_soft "$FILE"
 check_red "（如|（即|（也就是说" "$FILE" "括号内补充" "s14" "paren" || true
 
 # §1.4.111-113 中文标点与中英混排（外置 python 检测器，分项报告）
@@ -464,10 +452,10 @@ fi
 echo
 
 # ----------------------------------------------------------
-# §1.1 中文词汇红线（核心 15 条，阈值 = 0）
+# §1.1 中文词汇硬红线（核心 7 词，阈值 = 0；SSOT = anchors §1.1，逐字一致）
 # ----------------------------------------------------------
-echo "▼ §1.1 中文词汇红线（核心 15 条，阈值 = 0）"
-CN_HARD="赋能|重塑|深度融合|闭环|抓手|链路|打造|助力|切实推动|多维度|体系化|话语建构|跨界融合|提质增效|拉通"
+echo "▼ §1.1 中文词汇硬红线（核心 7 词，阈值 = 0）"
+CN_HARD="赋能|闭环|抓手|链路|拉通|话语建构|跨界融合"
 CN_RAW=$(grep -oE "$CN_HARD" "$FILE" 2>/dev/null || true)
 CN_COUNT=$(echo "$CN_RAW" | grep -c . 2>/dev/null || true)
 CN_COUNT=$(echo "$CN_COUNT" | head -1 | tr -d ' \n\r')
@@ -476,13 +464,7 @@ CN_COUNT=$(echo "$CN_COUNT" | head -1 | tr -d ' \n\r')
 if [ "$CN_COUNT" -gt 0 ]; then
     printf "  ${RED}✗ 中文红线词命中: %d 处${NC}\n" "$CN_COUNT"
     grep -nE "$CN_HARD" "$FILE" | head -10 | sed 's/^/    /'
-    if [ "$MODE" = "suggest" ]; then
-        suggest_for cn_hard
-        # 逐词替换建议
-        for w in $(echo "$CN_RAW" | sort -u); do
-            rep=$(fix_word "$w") && printf "      %s → %s\n" "$w" "$rep"
-        done
-    fi
+    [ "$MODE" = "suggest" ] && suggest_for cn_hard
     VIOLATIONS=$((VIOLATIONS + 1))
     inc_section "s11" "$CN_COUNT"
 else
@@ -491,10 +473,36 @@ fi
 echo
 
 # ----------------------------------------------------------
-# §1.1 三段式套壳（阈值 = 0）
+# §1.1.2 v10.1 降级词（原 CN_HARD 公文合法词 8 个 → 软信号，语境判断交 reviewer）
 # ----------------------------------------------------------
-echo "▼ 三段式套壳（阈值 = 0）"
-check_red "首先.{0,30}其次.{0,30}(最后|再者|然后|最终)" "$FILE" "首先...其次...最后" "s11" "sanduan" || true
+echo "▼ §1.1.2 v10.1 降级词（软信号，供 reviewer 语境判断）"
+CN_DEMOTED="切实推动|提质增效|深度融合|打造|助力|多维度|体系化|重塑"
+DEMOTED_LINES=$(count_pattern "$CN_DEMOTED" "$FILE")
+if [ "$DEMOTED_LINES" -gt 0 ]; then
+    printf "  ${YEL}⚠ 降级词命中: %d 行（供 reviewer 语境判断：本义准确保留，抬价堆砌改写；2026-08-04 由硬红线降级，理由见 anchors §2.0）${NC}\n" "$DEMOTED_LINES"
+    grep -nE "$CN_DEMOTED" "$FILE" | head -5 | sed 's/^/    /'
+    WARNINGS=$((WARNINGS + 1))
+    inc_section "s11" "$DEMOTED_LINES"
+else
+    printf "  ${GRN}✓ 降级词命中 = 0${NC}\n"
+fi
+echo
+
+# ----------------------------------------------------------
+# §1.1 三段式套壳（v10.1 降软 WARN：教学/讲稿语境合法，文体取舍交 reviewer）
+# ----------------------------------------------------------
+echo "▼ 三段式套壳（v10.1 软信号）"
+SANDUAN_RE="首先.{0,30}其次.{0,30}(最后|再者|然后|最终)"
+SANDUAN_COUNT=$(count_pattern "$SANDUAN_RE" "$FILE")
+if [ "$SANDUAN_COUNT" -gt 0 ]; then
+    printf "  ${YEL}⚠ 首先...其次...最后三段式: %d 行（软信号：教学/讲稿语境合法，供 reviewer 语境判断）${NC}\n" "$SANDUAN_COUNT"
+    grep -nE "$SANDUAN_RE" "$FILE" | head -5 | sed 's/^/    /'
+    [ "$MODE" = "suggest" ] && suggest_for sanduan
+    WARNINGS=$((WARNINGS + 1))
+    inc_section "s11" "$SANDUAN_COUNT"
+else
+    printf "  ${GRN}✓ 三段式套壳 = 0${NC}\n"
+fi
 echo
 
 # ----------------------------------------------------------
@@ -572,7 +580,7 @@ HEXIN_THRESH=$(threshold_for_length 3 "$SENT_COUNT")
 YIJING_THRESH=$(threshold_for_length 3 "$SENT_COUNT")
 ZHEYI_THRESH=$(threshold_for_length 2 "$SENT_COUNT")
 
-echo "▼ §4 软阈值（密度限制，文长 ${SENT_COUNT} 句 → 千句密度阈值动态计算）"
+echo "▼ §4 软阈值（密度限制，文长 ${SENT_COUNT} 句 → 千句密度阈值动态计算；密度提示仅报不令改）"
 YIJING=$(count_pattern "已经" "$FILE")
 HEXIN=$(count_pattern "核心" "$FILE")
 ZHEYI=$(count_pattern "这一" "$FILE")
@@ -582,7 +590,7 @@ check_density() {
     local count="$2"
     local thresh="$3"
     if [ "$count" -gt "$thresh" ]; then
-        printf "  ${YEL}⚠ %s: %d / 阈值 ≤ %d${NC}\n" "$label" "$count" "$thresh"
+        printf "  ${YEL}⚠ %s: %d / 阈值 ≤ %d（密度提示，不作改稿目标，防 Goodhart）${NC}\n" "$label" "$count" "$thresh"
         WARNINGS=$((WARNINGS + 1))
     else
         printf "  ${GRN}✓ %s: %d / 阈值 ≤ %d${NC}\n" "$label" "$count" "$thresh"
@@ -722,7 +730,7 @@ PYEOF
 )
 if [[ "$OPENING_RESULT" == WARN* ]]; then
     matched="${OPENING_RESULT#WARN|}"
-    printf "  ${YEL}⚠ §1.8 开篇模板复用: 首段匹配常见政策性开篇句式: \"%s\"（跨文档重复时为强信号）${NC}\n" "$matched"
+    printf "  ${YEL}⚠ §1.8 开篇模板复用: 首段匹配常见政策性开篇句式: \"%s\"（供 reviewer 参考：跨文档重复时为强信号）${NC}\n" "$matched"
     WARNINGS=$((WARNINGS + 1))
     inc_section "s18" 1
 else
@@ -792,9 +800,9 @@ PYEOF
 if [[ "$PARA_RESULT" != "OK" ]]; then
     while IFS='|' read -r level line count; do
         if [[ "$level" == "HARD" ]]; then
-            printf "  ${YEL}⚠ §1.9 超长段落: 第 %s 行起 %s 字（≥ 800 字，建议拆分）${NC}\n" "$line" "$count"
+            printf "  ${YEL}⚠ §1.9 超长段落: 第 %s 行起 %s 字（≥ 800 字，供 reviewer 参考）${NC}\n" "$line" "$count"
         else
-            printf "  ${YEL}⚠ §1.9 超长段落: 第 %s 行起 %s 字（≥ 500 字，建议拆分）${NC}\n" "$line" "$count"
+            printf "  ${YEL}⚠ §1.9 超长段落: 第 %s 行起 %s 字（≥ 500 字，供 reviewer 参考）${NC}\n" "$line" "$count"
         fi
     done <<< "$PARA_RESULT"
     WARNINGS=$((WARNINGS + 1))
@@ -819,7 +827,7 @@ try:
         stdev = statistics.stdev(sents)
         mean = statistics.mean(sents)
         if stdev < 8:
-            print(f'  ⚠ 句长标准差: {stdev:.1f} (阈值 ≥ 8) - 句长过于均匀，AI 味嫌疑')
+            print(f'  ⚠ 句长标准差: {stdev:.1f} (阈值 ≥ 8) - 句长过于均匀，AI 味嫌疑（供 reviewer 参考）')
             sys.exit(2)
         else:
             print(f'  ✓ 句长标准差: {stdev:.1f} / 平均 {mean:.0f} 字 / 句子数 {len(sents)}')
