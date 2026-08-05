@@ -4,9 +4,9 @@ description: Coaches, drafts, polishes, and audits Chinese documents using 《�
 allowed-tools: Bash, Read, Edit, Write, Task
 ---
 
-# writing-polish v10.0
+# writing-polish v10.1
 
-任仲然《怎样写作》、正向引导、翻译腔检测、约 80 条 AI 味红线、clean-context 反馈式审校（Anthropic evaluator-optimizer 范式）。
+任仲然《怎样写作》、正向引导、翻译腔检测、AI 味硬红线只留无歧义集（v10.1 收缩机械化，语境判断交 reviewer）、clean-context 反馈式审校（Anthropic evaluator-optimizer 范式）。
 
 > “好文稿是改出来的。热写稿，冷改稿。”
 
@@ -201,9 +201,9 @@ python3 scripts/docx-review-workflow.py <input.docx> <output.docx>           # �
 
 > SSOT: [`references/anti-ai-taste-anchors.md`](references/anti-ai-taste-anchors.md) §0-§3；`scan-ai-taste.sh` 字面执行。
 
-1. **GB/T 15834 标点**：弯引号 `"" ''`（U+201C/D/2018/9），禁 ASCII 直引号 / em-dash / 直角引号 / 半角括号紧贴英文术语
+1. **GB/T 15834 标点**：弯引号 `"" ''`（U+201C/D/2018/9），禁 ASCII 直引号 / 直角引号 / 半角括号紧贴英文术语（破折号 v10.1 降为软信号：国标合法标点，文体取舍交 reviewer）
 <!-- scan-skip -->
-2. **公文黑词**：赋能 / 重塑 / 闭环 / 抓手 / 链路 / 颗粒度 / 拉通 / 跑通 / 复盘 / 对齐 / 三件套
+2. **公文黑词**：硬红线词表以 [`references/anti-ai-taste-anchors.md`](references/anti-ai-taste-anchors.md) §1.1 为准（v10.1 收缩为 7 词无歧义集，脚本与其逐字一致、机械校验）；颗粒度 / 跑通 / 复盘 / 对齐 / 三件套等是软信号，留 reviewer 语境判断
 3. **元注释**：作为一个 AI 助手 / 让我为您整理 / 希望对您有帮助 / 以上仅供参考
 4. **戏剧化叙事**：三层防御 / 跑通 / 翻车 / 大刀阔斧 / 一战成名（IT 实物语境例外，scan ±2 行白名单）
 <!-- /scan-skip -->
