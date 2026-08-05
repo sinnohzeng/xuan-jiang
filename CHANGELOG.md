@@ -4,6 +4,40 @@ All notable changes to xuan-jiang `writing-polish` skill are documented here. Fo
 
 > 历史段按当时状态记录，**不代表当前文件仍存在**（如 v5.x 的 `prompts/multi-agent/`、`config/default.yaml`、v6.x 的 `prompts/reviewer.md` / 0-3 评分链均已在后续版本移除或下沉离线）。当前状态以 `README.md` / `docs/status.md` / `SKILL.md` 为准。
 
+## [10.1.0]（2026-08-04）收缩机械化：硬红线只留无歧义集，语境判断交 reviewer；吸收 human-writing（MIT）理念层
+
+> 触发：用户直觉“技能部分机械、没用好大模型理解力”，三路调研证实：scan-ai-taste.sh 864 行承载约 341 正则模式，v9.2 独立评估精确率约 18%；硬红线混入公文合法词与国标合法标点；同一黑词清单四处手写已漂移（交集仅 5 词）。同轮吸收外部技能 KKKKhazix/human-writing（GitHub，MIT）的理念层，调研落盘 `docs/research/2026-08-04-human-writing-absorption.md`，spec 落盘 `docs/plans/2026-08-04-v10.1-framework-contraction.md`。接口零改动（路径/参数/退出码/schema 契约不变）。
+
+### Added
+
+- **一致性哨兵 `scripts/check-rule-consistency.sh`**：机械比对 anchors §1.1 词表与 scan 脚本 CN_HARD 正则逐字一致，漂移 exit 1（bash 3.2 兼容，零新依赖）；契约吸收 human-writing（MIT）references/revision.md“硬禁词必须与判据文件完全一致，增删同轮双向修改”。offline-harness 无统一回归入口，已在 evals/README.md §6 登记为回归项。
+- **降级词软信号节**：CN_DEMOTED 8 词命中输出「供 reviewer 语境判断：本义准确保留，抬价堆砌改写」。
+- **reviewer 承接判据三条**（agents/writing-reviewer.md）：①降级词表语境判断；②破折号文体取舍（按体裁 G 码）；③密度提示仅报不令改。
+- **判据层吸收（均注明出处）**：`revision-checklist.md` 新增“七遍改稿补强”（逐段标作用 + 删 1/3 压缩试验、假具体识别、结尾检查、冷读四问；与何其芳 12 条分工：12 条管改什么、七遍管按什么顺序改）；`coach-checkpoints.md` §4 材料门槛量化（长稿 ≥1200 字动笔前 ≥5 件带来源材料，软 checkpoint 不作硬闸）。
+- **哨兵集 v10.1 重标**：redline-sentinel-set.jsonl 73 条全部加标 `expect_v10_1`（24 FAIL / 3 WARN / 46 PASS），脚本手术后实跑对拍 73/73 自洽；7 个 fixture 同步更新预期注释。
+
+### Changed
+
+- **CN_HARD 15→7 词**：保留赋能/闭环/抓手/链路/拉通/话语建构/跨界融合；**降级为软 WARN**：切实推动/提质增效/深度融合/打造/助力/多维度/体系化/重塑 8 个公文合法词（政府工作报告标准用词，无语境豁免即命中是误伤源）。
+- **破折号红线 → 软 WARN**：GB/T 15834 中破折号是合法标点，文体取舍交 reviewer；保留法律语境特殊提示并入 WARN 措辞。
+- **首先/其次/最后三段式 → 软 WARN**：教学/讲稿语境合法。
+- **密度阈值保留计数但降为提示**：WARN 措辞标注「密度提示，不作改稿目标」（防 Goodhart：机械计数曾诱导反向改坏文风）。
+- **词表唯一 SSOT**：anchors §1.1 按新软硬分界重写（硬红线无歧义集 + 降级项逐条注明理由与日期），新增一致性契约；SKILL.md §3 与 reviewer 内嵌词表改一行指针；anchors §6 阈值双写表删除（脚本是唯一执行者）。
+- **保留不动**：元注释/客服话术 4 组、工具残留 markup bugs/占位日期、GB/T 引号检查、±2 行白名单机制、KOUYU/ZIZHENG 软词表；开篇模板/超长段落/句长方差 WARN 措辞统一标注「供 reviewer 参考」。
+- **版本号全局统一 10.1.0**：plugin.json、脚本头注释与内嵌 JSON、docs/status.md、MEMORY.md、TROUBLESHOOTING.md、根 README 定位句。
+- **schema 遗留债同批清零**（QA 独立验证发现，均为 v10.0.0 遗留而非本轮回归）：`assets/scan-output.schema.json` version 字段去掉陈旧 const "9.0"（自 v9 起漂移），改描述明确其为插件版本戳非 schema 版本；`evals/offline-harness/eval-record.schema.json` 三处过期 enum 对齐脚本实际输出（version 增 10.1.0、protocol 增 v10.1、final_action 增 soft_warning/failed/error）。
+
+### Removed
+
+- **fix_word 逐词替换建议表**：references/failure-cases.md 案例 1 已证伪机械近义词替换。
+- **GENRE=auto 占位分支**：自注“暂等同 base”无实现计划。
+- **anchors §6 阈值双写表**、**SKILL.md / reviewer 内嵌黑词清单**（改指针）。
+- **evals/legacy/**（1.1MB v5.x 死重，git 历史可查；未入库的 .firecrawl 物理残留同批本地清空）。
+
+### Rationale
+
+收缩机械化：脚本只执行无歧义硬禁，语境判断交 reviewer——正则精确率 18% 的机械层不值得继续堆模式，大模型的理解力才是本技能该押注的地方。四源漂移教训：词表只能有一个权威源，其余放指针，用脚本机械校验代替人肉同步。**不吸收清单**：形状检测族脚本（比喻聚类/段首重复检测/短句排队检测等）一律不加——形状判断同样是语境判断，加脚本只会重蹈精确率 18% 的覆辙，交 reviewer；外部黑词清单不进本技能词表（词表须体裁门控）；硬禁令不加（须过白熊效应审查）。
+
 ## [10.0.0]（2026-08-03）站位四问升格全模式第一环节、读者谱系扩非工作场景、听众反应预演
 
 > 触发：用户长时间使用写作技能后沉淀出的体系性认知：任何写作或润色，必须先极其明确读者是谁、在什么媒介上读到或听到，这是最重要的政治站位检查；同一轮完成 2026 年中业界最佳实践调研（见 `docs/research/2026-08-03-best-practices.md`），audience-aware prompting 已成行业共识，佐证站位前置设计。另从一篇央企党课实战（citic-energy-dangke 仓，已脱敏）蒸馏出听众反应预演判据。用户明确要求：不做任何兼容保留，大刀阔斧改；主版本号锁定 10。

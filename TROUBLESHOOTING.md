@@ -1,4 +1,4 @@
-# 常见问题指引（writing-polish v10.0）
+# 常见问题指引（writing-polish v10.1）
 
 > 本文件按「症状 / 原因 / 解决」三段组织。先跑 `bash plugins/writing-polish/skills/writing-polish/scripts/check-dependencies.sh` 排查依赖。
 >
